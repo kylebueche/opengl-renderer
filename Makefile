@@ -2,10 +2,12 @@
 EXEC_NAME = Renderer
 SRC_DIR = src
 BUILD_DIR = build
+INCLUDES_DIR = $(SRC_DIR)/includes
 
 # Flags, compiler stuff
-CPPFLAGS = -Wall -Wextra -std=c++20 -pedantic -MMD -MP
-CFLAGS = -Wall -Wextra -std=c99 -MMD -MP
+PROJFLAGS = -MMD -MP -mwindows -I$(INCLUDES_DIR)
+CPPFLAGS = -std=c++20 -Wall -Wextra -pedantic
+CFLAGS = -std=c99 -Wall -Wextra
 # Optional: Treat warnings as errors
 # CFLAGS += -Werror
 LIBS = -lglfw3 -lopengl32 -lgdi32
@@ -17,18 +19,18 @@ DEPS = $(SRC:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.d) $(BUILD_DIR)/glad.d
 
 # Link all object files into one executable
 $(EXEC_NAME): $(OBJS)
-	g++ -o $@ $(OBJS) $(CPPFLAGS) $(LIBS)
+	g++ -o $@ $(OBJS) $(PROJFLAGS) $(CPPFLAGS) $(LIBS)
 
 # Line by line compile all srcs into objs
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(BUILD_DIR)
-	g++ -c $< -o $@ $(CPPFLAGS) $(LIBS)
+	g++ -c $< -o $@ $(PROJFLAGS) $(CPPFLAGS) $(LIBS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(BUILD_DIR)
-	gcc -c $< -o $@ $(CFLAGS) $(LIBS)
+	gcc -c $< -o $@ $(PROJFLAGS) $(CFLAGS) $(LIBS)
 
-# Recompile c files if any included files are updated
+# Automatically determine #include hierarchys from -MMD -MP flags
 -include $(DEPS)
 
 clean:
