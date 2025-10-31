@@ -1,77 +1,60 @@
 #include "mesh.h"
-
 #include <cmath>
 #include <numbers>
 
 Mesh::Mesh()
 {
-    vertices = NULL;
-    faces = NULL;
-}
-
-Mesh::Mesh(int numPoints)
-{
-    vertices = new float[3 * numPoints];
-    faces = NULL;
-}
-
-Mesh::Mesh(int numPoints, int numFaces)
-{
-    vertices = new float[3 * numPoints];
-    faces = new float[3 * numFaces];
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    vertices = std::vector<glm::vec3>();
+    normals = std::vector<glm::vec3>();
+    indices = std::vector<int>();
+    color = glm::vec3(1.0f);
 }
 
 Mesh::~Mesh()
 {
-    if (vertices != NULL)
-    {
-        delete(vertices);
-    }
-    if (faces != NULL)
-    {
-        delete(faces);
-    }
+    glDeleteBuffers(1, &EBO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &VAO);
 }
 
-Mesh fibonnacciSphere(int samples)
+void Mesh::bufferToGPU()
 {
-    Mesh mesh = Mesh(samples);
-    float goldenAngle = std::numbers::pi * (sqrt(5.0f) - 1.0f);
-    float x, y, z = 0;
-    float radius = 0;
-    float theta = 0;
-
-    for (int i = 0; i < samples; i++)
-    {
-        y = 1 - (i / float(samples - 1)) * 2;
-        radius = sqrt(1 - y * y);
-        
-        theta = goldenAngle * i;
-
-        x = cos(theta) * radius;
-        z = sin(theta) * radius;
-
-        mesh.vertices[i] = x;
-        mesh.vertices[i + 1] = y;
-        mesh.vertices[i + 2] = z;
-    }
-    return mesh;
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*) 0);
+    glEnableVertexAttribArray(0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * normals.size(), normals.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*) 0);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * indices.size(), indices.data(), GL_STATIC_DRAW);
 }
 
 Mesh triangle()
 {
-    Mesh mesh = Mesh(3, 1);
-    mesh.vertices[0] = -0.5f;
-    mesh.vertices[1] = -0.5f;
-    mesh.vertices[2] = 0.0f;
-    mesh.vertices[3] = 0.5f;
-    mesh.vertices[4] = -0.5f;
-    mesh.vertices[5] = 0.0f;
-    mesh.vertices[6] = 0.0f;
-    mesh.vertices[7] = 1.0f;
-    mesh.vertices[8] = 0.0f;
-    mesh.faces[0] = 0;
-    mesh.faces[1] = 3;
-    mesh.faces[2] = 6;
+    Mesh mesh;
+    mesh.vertices =
+    {
+        glm::vec3(-0.5f, -0.5f, 0.0f),
+        glm::vec3(0.5f, -0.5f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    };
+    mesh.normals =
+    {
+        glm::vec3(0.0f, 0.0f, 1.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f)
+    };
+    mesh.indices = { 0, 1, 2 };
     return mesh;
+}
+
+void Mesh::draw()
+{
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 }
