@@ -30,3 +30,7 @@ find_package(OpenGL REQUIRED)
 # ASSIMP
 #find_package(ASSIMP REQUIRED)
 #message(STATUS "ASSIMP included at ${ASSIMP_INCLUDE_DIR}")
+
+# Keep textures and shaders next to main.exe
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/shaders" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/textures" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
