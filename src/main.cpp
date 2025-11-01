@@ -19,6 +19,7 @@
 #include "../include/texture.h"
 
 // OpenGL functions
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void scroll_callback(GLFWwindow* window, double xOffset, double yOffset);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -58,6 +59,7 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -146,7 +148,7 @@ int main()
                 glm::vec3 a, b;
                 a = terrainVertices[topLeft] - terrainVertices[topRight];
                 b = terrainVertices[topLeft] - terrainVertices[bottomLeft];
-                terrainNormals[index] = glm::normalize(glm::cross(b, a));
+                terrainNormals[index] = glm::normalize(glm::cross(a, b));
             }
             
         }
@@ -244,7 +246,7 @@ int main()
 
     glm::vec3 white = glm::vec3(0.95f);
     glm::vec3 coral = glm::vec3(1.0f, 0.5f, 0.31f);
-    glm::vec3 pos = glm::vec3(0.0f, 100.0f, 0.0f);
+    glm::vec3 pos = glm::vec3(0.0f, 10.0f, 0.0f);
     glm::mat4 lightTrans = glm::mat4(1.0f);
     lightTrans = glm::translate(lightTrans, pos);
     lightTrans = glm::scale(lightTrans, glm::vec3(0.5f));
@@ -261,15 +263,23 @@ int main()
     int meshProjection = meshShader.getUniform("projection");
     int meshView = meshShader.getUniform("view");
     int meshModel = meshShader.getUniform("model");
-    int meshLightPos = meshShader.getUniform("lightPos");
-    int meshObjectColor = meshShader.getUniform("objectColor");
-    int meshLightColor = meshShader.getUniform("lightColor");
+    int meshAmbient = meshShader.getUniform("material.ambient");
+    int meshDiffuse = meshShader.getUniform("material.diffuse");
+    int meshSpecular = meshShader.getUniform("material.specular");
+    int meshShininess = meshShader.getUniform("material.shininess");
+    int meshLightAmbient = meshShader.getUniform("light.ambient");
+    int meshLightDiffuse = meshShader.getUniform("light.diffuse");
+    int meshLightSpecular = meshShader.getUniform("light.specular");
+    int meshLightPos = meshShader.getUniform("light.position");
     int meshNormalMatrix = meshShader.getUniform("normal");
     int meshViewPos = meshShader.getUniform("viewPos");
-    int meshSun = meshShader.getUniform("sunDir");
-    setVec3(meshSun, glm::normalize(glm::vec3(0.1f, -1.0f, 0.1f)));
-    setVec3(meshObjectColor, coral);
-    setVec3(meshLightColor, white);
+    setVec3(meshAmbient, coral);
+    setVec3(meshDiffuse, coral);
+    setVec3(meshSpecular, coral);
+    setFloat(meshShininess, 32.0f);
+    setVec3(meshLightAmbient, 0.2f * white);
+    setVec3(meshLightDiffuse, 0.5f * white);
+    setVec3(meshLightSpecular, 1.0f * white);
     setVec3(meshLightPos, pos);
     setMat4(meshProjection, camera.projection);
     setMat4(meshView, camera.view);
@@ -302,6 +312,10 @@ int main()
     {
         // Inputs and updates
         currentFrame = glfwGetTime();
+        glm::vec3 lightCol;
+        lightCol.x = sin(currentFrame * 1.9f + 6.28f / 3.0f);
+        lightCol.y = sin(currentFrame * 2.3f + 6.28f * 2.0f / 3.0f);
+        lightCol.z = sin(currentFrame * 1.73f);
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         processInput(window);
@@ -314,6 +328,7 @@ int main()
         lightSourceShader.use();
         glBindVertexArray(lightVAO);
         setMat4(lightCamera, camera.transform);
+        setVec3(lightColor, lightCol);
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -322,8 +337,14 @@ int main()
         setVec3(meshViewPos, camera.position);
         setMat4(meshProjection, camera.projection);
         setMat4(meshView, camera.view);
-        setVec3(meshObjectColor, coral);
-        setVec3(meshLightColor, white);
+        setVec3(meshAmbient, 0.8f * coral);
+        setVec3(meshDiffuse, coral);
+        setVec3(meshSpecular, 0.3f * coral);
+        setFloat(meshShininess, 32.0f);
+
+        setVec3(meshLightAmbient, 0.2f * lightCol);
+        setVec3(meshLightDiffuse, 0.5f * lightCol);
+        setVec3(meshLightSpecular, 1.0f * lightCol);
         setVec3(meshLightPos, pos);
         setMat4(meshModel, glm::mat4(1.0f));
         setMat4(meshNormalMatrix, glm::mat3(glm::transpose(glm::inverse(glm::mat4(1.0f)))));
@@ -359,10 +380,24 @@ int main()
     return 0;
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+}
+
 void mouse_callback(GLFWwindow* window, double xPos, double yPos)
 {
     static bool firstMotion = true;
     static float lastX, lastY;
+
+    if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL)
+    {
+        firstMotion = true;
+        return;
+    }
 
     if (firstMotion)
     {
@@ -402,7 +437,7 @@ void processInput(GLFWwindow* window)
     float distance = 5.0f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
-        glfwSetWindowShouldClose(window, true);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {

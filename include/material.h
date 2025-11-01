@@ -1,0 +1,9 @@
+//
+// Created by kyleb on 11/1/2025.
+//
+
+#ifndef OPENGL_RENDERER_MATERIAL_H
+#define OPENGL_RENDERER_MATERIAL_H
+
+
+#endif //OPENGL_RENDERER_MATERIAL_H
