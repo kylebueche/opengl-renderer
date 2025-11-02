@@ -23,6 +23,11 @@ target_link_directories(main PRIVATE ${LIB_DIR})
 target_compile_definitions(main PRIVATE GLFW_STATIC)
 target_link_libraries(main PRIVATE glfw3 opengl32)
 
+target_compile_options(main PRIVATE
+        $<$<CONFIG:Debug>:-O0;-g>
+        $<$<CONFIG:Release>:-O3>
+)
+
 # OpenGL
 set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
