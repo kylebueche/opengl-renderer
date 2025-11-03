@@ -45,6 +45,45 @@ void setPointLight(PointLightUniform uniform, PointLight light)
     setFloat(uniform.intensity, light.intensity);
 }
 
+struct SpotLight
+{
+    glm::vec3 position;
+    glm::vec3 direction;
+    float angle;
+    float fadeAngle;
+
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    glm::vec3 ambient;
+    float intensity;
+};
+
+struct SpotLightUniform
+{
+    GLint position;
+    GLint direction;
+    GLint angle;
+    GLint fadeAngle;
+
+    GLint diffuse;
+    GLint specular;
+    GLint ambient;
+    GLint intensity;
+};
+
+void setSpotLight(SpotLightUniform uniform, SpotLight light)
+{
+    setVec3(uniform.position, light.position);
+    setVec3(uniform.direction, light.direction);
+    setFloat(uniform.angle, light.angle);
+    setFloat(uniform.fadeAngle, light.fadeAngle);
+
+    setVec3(uniform.diffuse, light.diffuse);
+    setVec3(uniform.specular, light.specular);
+    setVec3(uniform.ambient, light.ambient);
+    setFloat(uniform.intensity, light.intensity);
+}
+
 struct DirLight
 {
     glm::vec3 direction;
@@ -329,9 +368,10 @@ int main()
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 
+    glm::vec3 blue = glm::vec3(0.0f, 0.1f, 0.9f);
     glm::vec3 white = glm::vec3(0.95f);
     glm::vec3 coral = glm::vec3(1.0f, 0.5f, 0.31f);
-    glm::vec3 pos = glm::vec3(0.0f, 10.0f, 0.0f);
+    glm::vec3 pos = glm::vec3(0.0f, 5.0f, 0.0f);
     glm::mat4 lightTrans = glm::mat4(1.0f);
     lightTrans = glm::translate(lightTrans, pos);
     lightTrans = glm::scale(lightTrans, glm::vec3(0.5f));
@@ -372,10 +412,10 @@ int main()
     int meshViewPos = meshShader.getUniform("viewPos");
 
     PointLight pointLight = {
-        .position = glm::vec3(0.0f, 5.0f, 0.0f),
-        .diffuse = white,
-        .specular = white,
-        .ambient = white * 0.2f,
+        .position = pos,
+        .diffuse = blue,
+        .specular = blue,
+        .ambient = blue * 0.2f,
         .intensity = 400.0f
     };
 
@@ -384,8 +424,9 @@ int main()
         .diffuse = white,
         .specular = white,
         .ambient = white * 0.2f,
-        .intensity = 1.0f
+        .intensity = 0.1f
     };
+
     Material material = {
         .diffuse = 0,
         .specular = 1,
@@ -418,7 +459,27 @@ int main()
         glm::vec3( 1.5f,  0.2f, -1.5f), 
         glm::vec3(-1.3f,  1.0f, -1.5f)  
     };
+    SpotLightUniform spotLightUniform = {
+        .position = meshShader.getUniform("spotLight.position"),
+        .direction = meshShader.getUniform("spotLight.direction"),
+        .angle = meshShader.getUniform("spotLight.angle"),
+        .fadeAngle = meshShader.getUniform("spotLight.fadeAngle"),
+        .diffuse = meshShader.getUniform("spotLight.diffuse"),
+        .specular = meshShader.getUniform("spotLight.specular"),
+        .ambient = meshShader.getUniform("spotLight.ambient"),
+        .intensity = meshShader.getUniform("spotLight.intensity"),
+    };
+    SpotLight spotLight = {
+        .position = camera.position,
+        .direction = camera.front,
+        .angle = 10.0f,
+        .fadeAngle = 15.0f,
 
+        .diffuse = white,
+        .specular = white,
+        .ambient = 0.1f * white,
+        .intensity = 100.0f
+    };
 
     lastFrame = glfwGetTime();
     // Render Loop
@@ -448,6 +509,9 @@ int main()
 
         meshShader.use();
         glBindVertexArray(VAOs[0]);
+        spotLight.position = camera.position;
+        spotLight.direction = camera.front;
+        setSpotLight(spotLightUniform, spotLight);
         setVec3(meshViewPos, camera.position);
         setMat4(meshProjection, camera.projection);
         setMat4(meshView, camera.view);
