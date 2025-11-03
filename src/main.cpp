@@ -18,6 +18,86 @@
 #include "../include/camera.h"
 #include "../include/texture.h"
 
+struct particle
+{
+    glm::vec3 initialPosition;
+    glm::vec3 initialVelocity;
+};
+
+class ParticleSystem
+{
+    std::vector<particle> particles;
+    std::vector<glm::vec3> positions;
+    std::vector<uint32_t> meshIndices;
+    std::vector<glm::vec3> meshVertices =
+    {
+        glm::vec3(0.0f, 1.0f, 0.0f),
+        glm::vec3(1.0f, 1.0f, 0.0f),
+        glm::vec3(1.0f, 1.0f, 1.0f),
+        glm::vec3(0.0f, 1.0f, 1.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(1.0f, 0.0f, 0.0f),
+        glm::vec3(1.0f, 0.0f, 1.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f),
+    };
+    std::vector<glm::vec3> meshNormals = meshVertices;
+    std::vector<glm::vec2> meshTexCoords =
+    {
+        glm::vec2(0.0f, 0.0f),
+        glm::vec2(1.0f, 0.0f),
+        glm::vec2(1.0f, 1.0f),
+        glm::vec2(1.0f, 1.0f),
+        glm::vec2(0.0f, 0.0f),
+        glm::vec2(1.0f, 0.0f),
+        glm::vec2(1.0f, 1.0f),
+        glm::vec2(1.0f, 1.0f),
+    };
+    GLuint VAO, VBOs[3], EBO;
+    ParticleSystem(int numParticles)
+    {
+        particles.reserve(numParticles);
+        positions.reserve(numParticles);
+        VAO = { 0 };
+        VBOs[3] = { 0 };
+        EBO = { 0 };
+
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(3, VBOs);
+        glGenBuffers(1, &EBO);
+
+        // Mesh VAO setup
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * meshIndices.size(), meshIndices.data(), GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * meshVertices.size(), meshVertices.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*) 0);
+        glEnableVertexAttribArray(0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * meshNormals.size(), meshNormals.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*) 0);
+        glEnableVertexAttribArray(1);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBOs[2]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * meshTexCoords.size(), meshTexCoords.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*) 0);
+        glEnableVertexAttribArray(2);
+        // Reset
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+    ~ParticleSystem()
+    {
+        glDeleteBuffers(3, VBOs);
+        glDeleteBuffers(1, &EBO);
+        glDeleteVertexArrays(1, &VAO);
+    }
+};
+
+
 struct PointLight
 {
     glm::vec3 position;
@@ -25,6 +105,10 @@ struct PointLight
     glm::vec3 specular;
     glm::vec3 ambient;
     float intensity;
+
+    float quadratic;
+    float linear;
+    float constant;
 };
 
 struct PointLightUniform
@@ -34,6 +118,10 @@ struct PointLightUniform
     GLint specular;
     GLint ambient;
     GLint intensity;
+
+    GLint quadratic;
+    GLint linear;
+    GLint constant;
 };
 
 void setPointLight(PointLightUniform uniform, PointLight light)
@@ -43,6 +131,10 @@ void setPointLight(PointLightUniform uniform, PointLight light)
     setVec3(uniform.specular, light.specular);
     setVec3(uniform.ambient, light.ambient);
     setFloat(uniform.intensity, light.intensity);
+
+    setFloat(uniform.quadratic, light.quadratic);
+    setFloat(uniform.linear, light.linear);
+    setFloat(uniform.constant, light.constant);
 }
 
 struct SpotLight
@@ -56,6 +148,10 @@ struct SpotLight
     glm::vec3 specular;
     glm::vec3 ambient;
     float intensity;
+
+    float quadratic;
+    float linear;
+    float constant;
 };
 
 struct SpotLightUniform
@@ -69,6 +165,10 @@ struct SpotLightUniform
     GLint specular;
     GLint ambient;
     GLint intensity;
+
+    GLint quadratic;
+    GLint linear;
+    GLint constant;
 };
 
 void setSpotLight(SpotLightUniform uniform, SpotLight light)
@@ -82,6 +182,10 @@ void setSpotLight(SpotLightUniform uniform, SpotLight light)
     setVec3(uniform.specular, light.specular);
     setVec3(uniform.ambient, light.ambient);
     setFloat(uniform.intensity, light.intensity);
+
+    setFloat(uniform.quadratic, light.quadratic);
+    setFloat(uniform.linear, light.linear);
+    setFloat(uniform.constant, light.constant);
 }
 
 struct DirLight
@@ -203,10 +307,10 @@ int main()
     lightSourceShader.compileFragmentShader("shaders/lightSource_frag.glsl");
     lightSourceShader.linkShaders();
 
-    Shader waveShader = Shader();
-    waveShader.compileVertexShader("shaders/water_vert.glsl");
-    waveShader.compileFragmentShader("shaders/water_frag.glsl");
-    waveShader.linkShaders();
+    //Shader waveShader = Shader();
+    //waveShader.compileVertexShader("shaders/water_vert.glsl");
+    //waveShader.compileFragmentShader("shaders/water_frag.glsl");
+    //waveShader.linkShaders();
 
     unsigned int texture1 = attachTexture("textures/container2.png", GL_TEXTURE0);
     unsigned int texture2 = attachTexture("textures/container2_specular.png", GL_TEXTURE1);
@@ -394,14 +498,17 @@ int main()
         .diffuse = meshShader.getUniform("pointLight.diffuse"),
         .specular = meshShader.getUniform("pointLight.specular"),
         .ambient = meshShader.getUniform("pointLight.ambient"),
-        .intensity = meshShader.getUniform("pointLight.intensity")
+        .intensity = meshShader.getUniform("pointLight.intensity"),
+        .quadratic = meshShader.getUniform("pointLight.quadratic"),
+        .linear = meshShader.getUniform("pointLight.linear"),
+        .constant = meshShader.getUniform("pointLight.constant")
     };
     DirLightUniform dirLightUniform = {
         .direction = meshShader.getUniform("dirLight.direction"),
         .diffuse = meshShader.getUniform("dirLight.diffuse"),
         .specular = meshShader.getUniform("dirLight.specular"),
         .ambient = meshShader.getUniform("dirLight.ambient"),
-        .intensity = meshShader.getUniform("dirLight.intensity")
+        .intensity = meshShader.getUniform("dirLight.intensity"),
     };
     MaterialUniform materialUniform = {
         .diffuse = meshShader.getUniform("material.diffuse"),
@@ -416,7 +523,10 @@ int main()
         .diffuse = blue,
         .specular = blue,
         .ambient = blue * 0.2f,
-        .intensity = 400.0f
+        .intensity = 100.0f,
+        .quadratic = 1.0f,
+        .linear = 1.0f,
+        .constant = 1.0f
     };
 
     DirLight dirLight = {
@@ -424,7 +534,7 @@ int main()
         .diffuse = white,
         .specular = white,
         .ambient = white * 0.2f,
-        .intensity = 0.1f
+        .intensity = 0.1f,
     };
 
     Material material = {
@@ -468,17 +578,23 @@ int main()
         .specular = meshShader.getUniform("spotLight.specular"),
         .ambient = meshShader.getUniform("spotLight.ambient"),
         .intensity = meshShader.getUniform("spotLight.intensity"),
+        .quadratic = meshShader.getUniform("spotLight.quadratic"),
+        .linear = meshShader.getUniform("spotLight.linear"),
+        .constant = meshShader.getUniform("spotLight.constant")
     };
     SpotLight spotLight = {
         .position = camera.position,
         .direction = camera.front,
-        .angle = 10.0f,
-        .fadeAngle = 15.0f,
+        .angle = 17.0f,
+        .fadeAngle = 20.0f,
 
         .diffuse = white,
         .specular = white,
         .ambient = 0.1f * white,
-        .intensity = 100.0f
+        .intensity = 1.0f,
+        .quadratic = 0.001f,
+        .linear = 0.001f,
+        .constant = 1.0f
     };
 
     lastFrame = glfwGetTime();
@@ -509,8 +625,8 @@ int main()
 
         meshShader.use();
         glBindVertexArray(VAOs[0]);
-        spotLight.position = camera.position;
-        spotLight.direction = camera.front;
+        spotLight.position += (camera.position - spotLight.position) * deltaTime * 5.0f;
+        spotLight.direction += (camera.front - spotLight.direction) * deltaTime * 5.0f;
         setSpotLight(spotLightUniform, spotLight);
         setVec3(meshViewPos, camera.position);
         setMat4(meshProjection, camera.projection);

@@ -21,6 +21,10 @@ struct PointLight {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+
+    float quadratic;
+    float linear;
+    float constant;
 };
 
 struct SpotLight {
@@ -33,6 +37,10 @@ struct SpotLight {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+
+    float quadratic;
+    float linear;
+    float constant;
 };
 
 struct FragmentMaterial {
@@ -75,7 +83,8 @@ vec3 lightFromPointLight(PointLight light, FragmentMaterial mat)
     vec3 result = ambient + diffuse + specular;
 
     // Divide brightness by the length squared
-    result = light.intensity * result / dot(light.position - FragPos, light.position - FragPos);
+    float dist = distance(light.position, FragPos);
+    result = light.intensity * result / (light.quadratic * dist * dist + light.linear * dist + light.constant);
     return result;
 }
 
@@ -121,11 +130,12 @@ vec3 lightFromSpotLight(SpotLight light, FragmentMaterial mat)
     vec3 specular = light.specular * spec * mat.specular;
     float cos_theta = dot(lightDir, normalize(-light.direction));
     float epsilon = cos(radians(light.angle)) - cos(radians(light.fadeAngle));
-    float intensity = clamp((cos_theta - cos(radians(light.fadeAngle))) / epsilon, 0.0, 1.0);
+    float spotIntensity = clamp((cos_theta - cos(radians(light.fadeAngle))) / epsilon, 0.0, 1.0);
 
     vec3 result = ambient + diffuse + specular;
+    float dist = distance(light.position, FragPos);
     // Divide brightness by the length squared
-    result = intensity * light.intensity * result / dot(light.position - FragPos, light.position - FragPos);
+    result = spotIntensity * light.intensity * result / (light.quadratic * dist * dist + light.linear * dist + light.constant);
 
     return result;
 }
