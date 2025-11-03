@@ -18,6 +18,81 @@
 #include "../include/camera.h"
 #include "../include/texture.h"
 
+struct PointLight
+{
+    glm::vec3 position;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    glm::vec3 ambient;
+    float intensity;
+};
+
+struct PointLightUniform
+{
+    GLint position;
+    GLint diffuse;
+    GLint specular;
+    GLint ambient;
+    GLint intensity;
+};
+
+void setPointLight(PointLightUniform uniform, PointLight light)
+{
+    setVec3(uniform.position, light.position);
+    setVec3(uniform.diffuse, light.diffuse);
+    setVec3(uniform.specular, light.specular);
+    setVec3(uniform.ambient, light.ambient);
+    setFloat(uniform.intensity, light.intensity);
+}
+
+struct DirLight
+{
+    glm::vec3 direction;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    glm::vec3 ambient;
+    float intensity;
+};
+
+struct DirLightUniform
+{
+    GLint direction;
+    GLint diffuse;
+    GLint specular;
+    GLint ambient;
+    GLint intensity;
+};
+
+void setDirLight(DirLightUniform uniform, DirLight light)
+{
+    setVec3(uniform.direction, light.direction);
+    setVec3(uniform.diffuse, light.diffuse);
+    setVec3(uniform.specular, light.specular);
+    setVec3(uniform.ambient, light.ambient);
+    setFloat(uniform.intensity, light.intensity);
+}
+
+struct Material
+{
+    GLenum diffuse;
+    GLenum specular;
+    float shininess;
+};
+
+struct MaterialUniform
+{
+    GLint diffuse;
+    GLint specular;
+    GLint shininess;
+};
+
+void setMaterial(MaterialUniform uniform, Material mat)
+{
+    setInt(uniform.diffuse, mat.diffuse);
+    setInt(uniform.specular, mat.specular);
+    setFloat(uniform.shininess, mat.shininess);
+}
+
 // OpenGL functions
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
@@ -94,8 +169,10 @@ int main()
     waveShader.compileFragmentShader("shaders/water_frag.glsl");
     waveShader.linkShaders();
 
-    unsigned int texture1 = attachTexture("textures/jerma.jpg", GL_TEXTURE0);
-    unsigned int texture2 = attachTexture("textures/awesomeface.png", GL_TEXTURE1);
+    unsigned int texture1 = attachTexture("textures/container2.png", GL_TEXTURE0);
+    unsigned int texture2 = attachTexture("textures/container2_specular.png", GL_TEXTURE1);
+    unsigned int texture3 = attachTexture("textures/awesomeface.png", GL_TEXTURE2);
+    unsigned int texture4 = attachTexture("textures/jerma.jpg", GL_TEXTURE3);
 
     std::mt19937 rng(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
@@ -109,6 +186,7 @@ int main()
     const float amplitude[layers] = { 10.0f, 2.5f, 0.5f };
     std::vector<glm::vec3> terrainVertices = std::vector<glm::vec3>(numVerticesX * numVerticesZ, glm::vec3(0.0f));
     std::vector<glm::vec3> terrainNormals = std::vector<glm::vec3>(numVerticesX * numVerticesZ, glm::vec3(0.0f));
+    std::vector<glm::vec2> terrainTexCoords = std::vector<glm::vec2>(numVerticesX * numVerticesZ, glm::vec2(0.0f));
     std::vector<uint32_t> terrainIndices = std::vector<uint32_t>();
 
     int index, xIndex, yIndex, zIndex = 0;
@@ -117,6 +195,8 @@ int main()
         for (int j = 0; j < numVerticesZ; j++)
         {
             index = (i * numVerticesX + j);
+
+            terrainTexCoords[index] = glm::vec2(float(i) / float(numVerticesX - 1), float(j) / float(numVerticesZ - 1));
 
             float x = sizeX * (float(i) / numVerticesX - 0.5f);
             float z = sizeZ * (float(j) / numVerticesZ - 0.5f);
@@ -201,13 +281,13 @@ int main()
     };
 
     unsigned int VAOs[1] = { 0 };
-    unsigned int VBOs[2] = { 0 };
+    unsigned int VBOs[3] = { 0 };
     unsigned int EBOs[1] = { 0 };
     unsigned int lightVAO;
     unsigned int lightVBO;
 
     glGenVertexArrays(1, VAOs);
-    glGenBuffers(2, VBOs);
+    glGenBuffers(3, VBOs);
     glGenBuffers(1, EBOs);
 
     // Light VAO setup
@@ -235,6 +315,11 @@ int main()
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*) 0);
     glEnableVertexAttribArray(1);
 
+    glBindBuffer(GL_ARRAY_BUFFER, VBOs[2]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * terrainTexCoords.size(), terrainTexCoords.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*) 0);
+    glEnableVertexAttribArray(2);
+
     // Reset
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -259,28 +344,57 @@ int main()
     setVec3(lightColor, white);
     setMat4(lightCamera, camera.transform);
 
+
     meshShader.use();
     int meshProjection = meshShader.getUniform("projection");
     int meshView = meshShader.getUniform("view");
     int meshModel = meshShader.getUniform("model");
-    int meshAmbient = meshShader.getUniform("material.ambient");
-    int meshDiffuse = meshShader.getUniform("material.diffuse");
-    int meshSpecular = meshShader.getUniform("material.specular");
-    int meshShininess = meshShader.getUniform("material.shininess");
-    int meshLightAmbient = meshShader.getUniform("light.ambient");
-    int meshLightDiffuse = meshShader.getUniform("light.diffuse");
-    int meshLightSpecular = meshShader.getUniform("light.specular");
-    int meshLightPos = meshShader.getUniform("light.position");
+    PointLightUniform pointLightUniform = {
+        .position = meshShader.getUniform("pointLight.position"),
+        .diffuse = meshShader.getUniform("pointLight.diffuse"),
+        .specular = meshShader.getUniform("pointLight.specular"),
+        .ambient = meshShader.getUniform("pointLight.ambient"),
+        .intensity = meshShader.getUniform("pointLight.intensity")
+    };
+    DirLightUniform dirLightUniform = {
+        .direction = meshShader.getUniform("dirLight.direction"),
+        .diffuse = meshShader.getUniform("dirLight.diffuse"),
+        .specular = meshShader.getUniform("dirLight.specular"),
+        .ambient = meshShader.getUniform("dirLight.ambient"),
+        .intensity = meshShader.getUniform("dirLight.intensity")
+    };
+    MaterialUniform materialUniform = {
+        .diffuse = meshShader.getUniform("material.diffuse"),
+        .specular = meshShader.getUniform("material.specular"),
+        .shininess = meshShader.getUniform("material.shininess")
+    };
     int meshNormalMatrix = meshShader.getUniform("normal");
     int meshViewPos = meshShader.getUniform("viewPos");
-    setVec3(meshAmbient, coral);
-    setVec3(meshDiffuse, coral);
-    setVec3(meshSpecular, coral);
-    setFloat(meshShininess, 32.0f);
-    setVec3(meshLightAmbient, 0.2f * white);
-    setVec3(meshLightDiffuse, 0.5f * white);
-    setVec3(meshLightSpecular, 1.0f * white);
-    setVec3(meshLightPos, pos);
+
+    PointLight pointLight = {
+        .position = glm::vec3(0.0f, 5.0f, 0.0f),
+        .diffuse = white,
+        .specular = white,
+        .ambient = white * 0.2f,
+        .intensity = 400.0f
+    };
+
+    DirLight dirLight = {
+        .direction = glm::vec3(0.2f, -1.0f, 0.1f),
+        .diffuse = white,
+        .specular = white,
+        .ambient = white * 0.2f,
+        .intensity = 1.0f
+    };
+    Material material = {
+        .diffuse = 0,
+        .specular = 1,
+        .shininess = 32.0f
+    };
+    setPointLight(pointLightUniform, pointLight);
+    setDirLight(dirLightUniform, dirLight);
+    setMaterial(materialUniform, material);
+
     setMat4(meshProjection, camera.projection);
     setMat4(meshView, camera.view);
     glm::mat4 model = glm::mat4(1.0f);
@@ -312,10 +426,10 @@ int main()
     {
         // Inputs and updates
         currentFrame = glfwGetTime();
-        glm::vec3 lightCol;
-        lightCol.x = sin(currentFrame * 1.9f + 6.28f / 3.0f);
-        lightCol.y = sin(currentFrame * 2.3f + 6.28f * 2.0f / 3.0f);
-        lightCol.z = sin(currentFrame * 1.73f);
+        glm::vec3 lightCol = glm::vec3(1.0f);
+        //lightCol.x = sin(currentFrame * 1.9f + 6.28f / 3.0f);
+        //lightCol.y = sin(currentFrame * 2.3f + 6.28f * 2.0f / 3.0f);
+        //lightCol.z = sin(currentFrame * 1.73f);
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         processInput(window);
@@ -337,15 +451,9 @@ int main()
         setVec3(meshViewPos, camera.position);
         setMat4(meshProjection, camera.projection);
         setMat4(meshView, camera.view);
-        setVec3(meshAmbient, 0.8f * coral);
-        setVec3(meshDiffuse, coral);
-        setVec3(meshSpecular, 0.3f * coral);
-        setFloat(meshShininess, 32.0f);
-
-        setVec3(meshLightAmbient, 0.2f * lightCol);
-        setVec3(meshLightDiffuse, 0.5f * lightCol);
-        setVec3(meshLightSpecular, 1.0f * lightCol);
-        setVec3(meshLightPos, pos);
+        setPointLight(pointLightUniform, pointLight);
+        setDirLight(dirLightUniform, dirLight);
+        setMaterial(materialUniform, material);
         setMat4(meshModel, glm::mat4(1.0f));
         setMat4(meshNormalMatrix, glm::mat3(glm::transpose(glm::inverse(glm::mat4(1.0f)))));
         glDrawElements(GL_TRIANGLES, terrainIndices.size(), GL_UNSIGNED_INT, 0);
@@ -369,7 +477,7 @@ int main()
         glfwPollEvents();
     }
     glDeleteVertexArrays(1, VAOs);
-    glDeleteBuffers(2, VBOs);
+    glDeleteBuffers(3, VBOs);
     glDeleteBuffers(1, EBOs);
 
     glDeleteVertexArrays(1, &lightVAO);

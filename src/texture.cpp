@@ -1,5 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include "../include/texture.h"
+#include "texture.h"
 
 GLint attachTexture(const char* texturePath, GLenum glTexture)
 {

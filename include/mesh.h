@@ -16,6 +16,7 @@ class Mesh
         GLuint EBO;
         std::vector<glm::vec3> vertices;
         std::vector<glm::vec3> normals;
+        std::vector<glm::vec3> texCoords;
         std::vector<int> indices;
         glm::vec3 color;
 
