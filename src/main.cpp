@@ -106,8 +106,9 @@ public:
         {
             float xDir = float(i % 7) / 7.0f - float(i % 3) / 3.0f + float(i % 23) / 23.0f - float(i % 13) / 13.0f;
             float zDir = float(i % 20) / 20.0f - float(i % 19) / 19.0f + float(i % 13) / 13.0f - float(i % 6) / 6.0f;
+            float yDir = float(i % 23) / 23.0f - float(i % 4) / 4.0f + float(i % 14) / 14.0f - float(i % 5) / 5.0f;
             particles[i].initialPosition = glm::vec3(5.0f, 0.0f, 5.0f);
-            particles[i].initialVelocity = glm::vec3(5.0 * xDir, 15.0f, 5.0 * zDir);
+            particles[i].initialVelocity = glm::vec3(5.0 * xDir, 15.0f * yDir, 5.0 * zDir);
         }
     }
 
@@ -643,7 +644,7 @@ int main()
         .constant = 1.0f
     };
 
-    ParticleSystem particleSystem(100);
+    ParticleSystem particleSystem(30000);
 
     lastFrame = glfwGetTime();
     // Render Loop
