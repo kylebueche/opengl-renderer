@@ -26,39 +26,52 @@ struct particle
 
 class ParticleSystem
 {
+public:
     std::vector<particle> particles;
     std::vector<glm::vec3> positions;
     std::vector<uint32_t> meshIndices;
-    std::vector<glm::vec3> meshVertices =
-    {
-        glm::vec3(0.0f, 1.0f, 0.0f),
-        glm::vec3(1.0f, 1.0f, 0.0f),
-        glm::vec3(1.0f, 1.0f, 1.0f),
-        glm::vec3(0.0f, 1.0f, 1.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(1.0f, 0.0f, 0.0f),
-        glm::vec3(1.0f, 0.0f, 1.0f),
-        glm::vec3(0.0f, 0.0f, 1.0f),
-    };
-    std::vector<glm::vec3> meshNormals = meshVertices;
-    std::vector<glm::vec2> meshTexCoords =
-    {
-        glm::vec2(0.0f, 0.0f),
-        glm::vec2(1.0f, 0.0f),
-        glm::vec2(1.0f, 1.0f),
-        glm::vec2(1.0f, 1.0f),
-        glm::vec2(0.0f, 0.0f),
-        glm::vec2(1.0f, 0.0f),
-        glm::vec2(1.0f, 1.0f),
-        glm::vec2(1.0f, 1.0f),
-    };
+    std::vector<glm::vec3> meshVertices;
+    std::vector<glm::vec3> meshNormals;
+    std::vector<glm::vec2> meshTexCoords;
     GLuint VAO, VBOs[3], EBO;
+
     ParticleSystem(int numParticles)
     {
-        particles.reserve(numParticles);
-        positions.reserve(numParticles);
+        meshVertices = {
+            glm::vec3(0.0f, 1.0f, 0.0f),
+            glm::vec3(1.0f, 1.0f, 0.0f),
+            glm::vec3(1.0f, 1.0f, 1.0f),
+            glm::vec3(0.0f, 1.0f, 1.0f),
+            glm::vec3(0.0f, 0.0f, 0.0f),
+            glm::vec3(1.0f, 0.0f, 0.0f),
+            glm::vec3(1.0f, 0.0f, 1.0f),
+            glm::vec3(0.0f, 0.0f, 1.0f),
+        };
+        meshNormals = meshVertices;
+        meshTexCoords = {
+            glm::vec2(0.0f, 0.0f),
+            glm::vec2(1.0f, 0.0f),
+            glm::vec2(1.0f, 1.0f),
+            glm::vec2(1.0f, 1.0f),
+            glm::vec2(0.0f, 0.0f),
+            glm::vec2(1.0f, 0.0f),
+            glm::vec2(1.0f, 1.0f),
+            glm::vec2(1.0f, 1.0f),
+        };
+        meshIndices = {
+            0, 1, 2, 2, 3, 0,
+            4, 5, 6, 6, 7, 4,
+            0, 4, 5, 5, 1, 0,
+            0, 4, 7, 7, 3, 0,
+            2, 6, 5, 5, 1, 2,
+            2, 6, 7, 7, 3, 2
+        };
+        particles.resize(numParticles);
+        positions.resize(numParticles);
         VAO = { 0 };
-        VBOs[3] = { 0 };
+        VBOs[0] = { 0 };
+        VBOs[1] = { 0 };
+        VBOs[2] = { 0 };
         EBO = { 0 };
 
         glGenVertexArrays(1, &VAO);
@@ -88,7 +101,40 @@ class ParticleSystem
         // Reset
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
+
+        for (int i = 0; i < particles.size(); i++)
+        {
+            float xDir = float(i % 7) / 7.0f - float(i % 3) / 3.0f + float(i % 23) / 23.0f - float(i % 13) / 13.0f;
+            float zDir = float(i % 20) / 20.0f - float(i % 19) / 19.0f + float(i % 13) / 13.0f - float(i % 6) / 6.0f;
+            particles[i].initialPosition = glm::vec3(5.0f, 0.0f, 5.0f);
+            particles[i].initialVelocity = glm::vec3(5.0 * xDir, 15.0f, 5.0 * zDir);
+        }
     }
+
+    void interpolate(float t)
+    {
+        for (int i = 0; i < particles.size(); i++)
+        {
+            positions[i] = particles[i].initialPosition + particles[i].initialVelocity * t - glm::vec3(0.0f, 0.5f * 9.81f, 0.0f) * t * t;
+        }
+    }
+
+    void draw(GLint meshModel, GLint meshNormalMatrix)
+    {
+        glBindVertexArray(VAO);
+        for (unsigned int i = 0; i < positions.size(); i++)
+        {
+            //float angle = 20.0f * i;
+            glm::mat4 transform = glm::mat4(1.0f);
+            transform = glm::translate(transform, positions[i]);
+            //transform = glm::rotate(transform, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            setMat4(meshModel, transform);
+            setMat4(meshNormalMatrix, glm::mat3(glm::transpose(glm::inverse(transform))));
+            glDrawElements(GL_TRIANGLES, meshIndices.size(), GL_UNSIGNED_INT, 0);
+        }
+        glBindVertexArray(0);
+    }
+
     ~ParticleSystem()
     {
         glDeleteBuffers(3, VBOs);
@@ -597,6 +643,8 @@ int main()
         .constant = 1.0f
     };
 
+    ParticleSystem particleSystem(100);
+
     lastFrame = glfwGetTime();
     // Render Loop
     while (!glfwWindowShouldClose(window))
@@ -610,6 +658,10 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         processInput(window);
+        static float currentTime = 0.0f;
+        currentTime += deltaTime;
+        particleSystem.interpolate(currentTime);
+        if (currentTime > 10.0f) { currentTime = 0.0f; }
 
         // Canvas reset
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -638,6 +690,7 @@ int main()
         setMat4(meshNormalMatrix, glm::mat3(glm::transpose(glm::inverse(glm::mat4(1.0f)))));
         glDrawElements(GL_TRIANGLES, terrainIndices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+        particleSystem.draw(meshModel, meshNormalMatrix);
 
         /*
         for (unsigned int i = 0; i < 10; i++)
