@@ -7,23 +7,30 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <string>
+#include "shader.h"
+#include "texture.h"
 
 class Mesh
 {
     public:
         GLuint VAO;
-        GLuint VBO;
+        GLuint VBOs[3];
         GLuint EBO;
+        // VBO Data
         std::vector<glm::vec3> vertices;
         std::vector<glm::vec3> normals;
-        std::vector<glm::vec3> texCoords;
-        std::vector<int> indices;
-        glm::vec3 color;
+        std::vector<glm::vec2> texCoords;
+        // EBO Data
+        std::vector<unsigned int> indices;
+        // Texture Data
+        std::vector<Texture> textures;
 
         Mesh();
+        Mesh(const Mesh& other);
         ~Mesh();
         void bufferToGPU();
-        void draw();
+        void draw(Shader &shader);
 
 };
 

@@ -5,6 +5,19 @@
 #include <iostream>
 #include <stb_image.h>
 
-GLint attachTexture(const char* texturePath, GLenum glTexture);
+enum TEXTURE_TYPE
+{
+    diffuse,
+    specular
+};
+
+struct Texture
+{
+    GLuint id;
+    std::string type;
+    std::string path;
+};
+
+GLint loadTexture(const char* texturePath, std::string directory);
 
 #endif

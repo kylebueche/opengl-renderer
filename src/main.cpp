@@ -5,8 +5,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <../thirdparty/stb_image.h>
-#include <../thirdparty/PerlinNoise.hpp>
+#include <../thirdparty/include/stb_image.h>
+#include <../thirdparty/include/PerlinNoise.hpp>
 
 #include <iostream>
 #include <cmath>
@@ -14,9 +14,10 @@
 #include <random>
 #include <chrono>
 
-#include "../include/shader.h"
-#include "../include/camera.h"
-#include "../include/texture.h"
+#include "shader.h"
+#include "camera.h"
+#include "texture.h"
+#include "mesh.h"
 
 struct particle
 {
@@ -29,15 +30,10 @@ class ParticleSystem
 public:
     std::vector<particle> particles;
     std::vector<glm::vec3> positions;
-    std::vector<uint32_t> meshIndices;
-    std::vector<glm::vec3> meshVertices;
-    std::vector<glm::vec3> meshNormals;
-    std::vector<glm::vec2> meshTexCoords;
-    GLuint VAO, VBOs[3], EBO;
-
+    Mesh particleMesh;
     ParticleSystem(int numParticles)
     {
-        meshVertices = {
+        particleMesh.vertices = {
             glm::vec3(0.0f, 1.0f, 0.0f),
             glm::vec3(1.0f, 1.0f, 0.0f),
             glm::vec3(1.0f, 1.0f, 1.0f),
@@ -47,8 +43,8 @@ public:
             glm::vec3(1.0f, 0.0f, 1.0f),
             glm::vec3(0.0f, 0.0f, 1.0f),
         };
-        meshNormals = meshVertices;
-        meshTexCoords = {
+        particleMesh.normals = particleMesh.vertices;
+        particleMesh.texCoords = {
             glm::vec2(0.0f, 0.0f),
             glm::vec2(1.0f, 0.0f),
             glm::vec2(1.0f, 1.0f),
@@ -58,7 +54,7 @@ public:
             glm::vec2(1.0f, 1.0f),
             glm::vec2(1.0f, 1.0f),
         };
-        meshIndices = {
+        particleMesh.indices = {
             0, 1, 2, 2, 3, 0,
             4, 5, 6, 6, 7, 4,
             0, 4, 5, 5, 1, 0,
@@ -68,39 +64,14 @@ public:
         };
         particles.resize(numParticles);
         positions.resize(numParticles);
-        VAO = { 0 };
-        VBOs[0] = { 0 };
-        VBOs[1] = { 0 };
-        VBOs[2] = { 0 };
-        EBO = { 0 };
 
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(3, VBOs);
-        glGenBuffers(1, &EBO);
-
-        // Mesh VAO setup
-        glBindVertexArray(VAO);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * meshIndices.size(), meshIndices.data(), GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * meshVertices.size(), meshVertices.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*) 0);
-        glEnableVertexAttribArray(0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * meshNormals.size(), meshNormals.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*) 0);
-        glEnableVertexAttribArray(1);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBOs[2]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * meshTexCoords.size(), meshTexCoords.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*) 0);
-        glEnableVertexAttribArray(2);
-        // Reset
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
+        unsigned int texture1 = loadTexture("container2.png", "textures");
+        unsigned int texture2 = loadTexture("container2_specular.png", "textures");
+        Texture diffTex = { .id = texture1, .type = "texture_diffuse", .path = "container2.png"};
+        Texture specTex = { .id = texture2, .type = "texture_specular", .path = "container2_specular.png"};
+        particleMesh.textures.push_back(diffTex);
+        particleMesh.textures.push_back(specTex);
+        particleMesh.bufferToGPU();
 
         for (int i = 0; i < particles.size(); i++)
         {
@@ -120,27 +91,21 @@ public:
         }
     }
 
-    void draw(GLint meshModel, GLint meshNormalMatrix)
+    void draw(Shader &shader)
     {
-        glBindVertexArray(VAO);
+        shader.use();
+        GLint meshModel = shader.getUniform("model");
+        GLint meshNormalMatrix = shader.getUniform("normal");
         for (unsigned int i = 0; i < positions.size(); i++)
         {
-            //float angle = 20.0f * i;
             glm::mat4 transform = glm::mat4(1.0f);
             transform = glm::translate(transform, positions[i]);
-            //transform = glm::rotate(transform, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
             setMat4(meshModel, transform);
             setMat4(meshNormalMatrix, glm::mat3(glm::transpose(glm::inverse(transform))));
-            glDrawElements(GL_TRIANGLES, meshIndices.size(), GL_UNSIGNED_INT, 0);
+            particleMesh.draw(shader);
+
         }
         glBindVertexArray(0);
-    }
-
-    ~ParticleSystem()
-    {
-        glDeleteBuffers(3, VBOs);
-        glDeleteBuffers(1, &EBO);
-        glDeleteVertexArrays(1, &VAO);
     }
 };
 
@@ -306,6 +271,7 @@ const siv::PerlinNoise perlin{ seed };
 
 int main()
 {
+    int debugBreak = 0;
     // GLFW Setup
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -340,6 +306,8 @@ int main()
     // STBI Settings
     stbi_set_flip_vertically_on_load(true);
 
+    std::cout << debugBreak++ << std::endl;
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -354,15 +322,18 @@ int main()
     lightSourceShader.compileFragmentShader("shaders/lightSource_frag.glsl");
     lightSourceShader.linkShaders();
 
+    std::cout << debugBreak++ << std::endl;
     //Shader waveShader = Shader();
     //waveShader.compileVertexShader("shaders/water_vert.glsl");
     //waveShader.compileFragmentShader("shaders/water_frag.glsl");
     //waveShader.linkShaders();
 
-    unsigned int texture1 = attachTexture("textures/container2.png", GL_TEXTURE0);
-    unsigned int texture2 = attachTexture("textures/container2_specular.png", GL_TEXTURE1);
-    unsigned int texture3 = attachTexture("textures/awesomeface.png", GL_TEXTURE2);
-    unsigned int texture4 = attachTexture("textures/jerma.jpg", GL_TEXTURE3);
+    unsigned int texture1 = loadTexture("container2.png", "textures");
+    unsigned int texture2 = loadTexture("container2_specular.png", "textures");
+    unsigned int texture3 = loadTexture("awesomeface.png", "textures");
+    unsigned int texture4 = loadTexture("jerma.jpg", "textures");
+
+    std::cout << debugBreak++ << std::endl;
 
     std::mt19937 rng(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
@@ -423,8 +394,6 @@ int main()
             
         }
     }
-
-            
 
     float vertices[] = {
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -576,6 +545,7 @@ int main()
         .constant = 1.0f
     };
 
+    std::cout << debugBreak++ << std::endl;
     DirLight dirLight = {
         .direction = glm::vec3(0.2f, -1.0f, 0.1f),
         .diffuse = white,
@@ -644,7 +614,7 @@ int main()
         .constant = 1.0f
     };
 
-    ParticleSystem particleSystem(30000);
+    ParticleSystem particleSystem(300);
 
     lastFrame = glfwGetTime();
     // Render Loop
@@ -691,7 +661,7 @@ int main()
         setMat4(meshNormalMatrix, glm::mat3(glm::transpose(glm::inverse(glm::mat4(1.0f)))));
         glDrawElements(GL_TRIANGLES, terrainIndices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
-        particleSystem.draw(meshModel, meshNormalMatrix);
+        particleSystem.draw(meshShader);
 
         /*
         for (unsigned int i = 0; i < 10; i++)
