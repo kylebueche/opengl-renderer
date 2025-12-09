@@ -47,3 +47,27 @@ GLint loadTexture(const char* texturePath, std::string directory)
     return textureID;
 }
 
+GLint colorTexture(glm::vec3 color)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    int width = 2;
+    int height = 2;
+    glm::vec3 colors[] = {color, color, color, color};
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, colors);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+}
+
+Texture::Texture(glm::vec3 color)
+{
+    id = colorTexture(color);
+    type = "color";
+    path = "procedural";
+}
+
+Texture::Texture(GLuint id, std::string type, std::string path) : id(id), type(type), path(path) {}

@@ -30,7 +30,7 @@ Mesh::Mesh(const Mesh& other)
 Mesh::~Mesh()
 {
     glDeleteBuffers(1, &EBO);
-    glDeleteBuffers(1, VBOs);
+    glDeleteBuffers(3, VBOs);
     glDeleteVertexArrays(1, &VAO);
 }
 
@@ -108,6 +108,18 @@ void Mesh::draw(Shader& shader)
         setInt(uniform, i);
         glBindTexture(GL_TEXTURE_2D, textures[i].id);
     }
+    glActiveTexture(textures.size());
+    glBindTexture(GL_TEXTURE_2D, defaultTexture.id);
+    for (int i = diffuseNr; i <= 8; i++)
+    {
+        GLint uniform = shader.getUniform(("material.texture_diffuse" + std::to_string(i)).c_str());
+        setInt(uniform, textures.size());
+    }
+    for (int i = specularNr; i <= 8; i++)
+    {
+        GLint uniform = shader.getUniform(("material.specular_diffuse" + std::to_string(i)).c_str());
+        setInt(uniform, textures.size());
+    }
     glActiveTexture(GL_TEXTURE0);
 
     glBindVertexArray(VAO);
@@ -115,3 +127,5 @@ void Mesh::draw(Shader& shader)
     glBindVertexArray(0);
 
 }
+
+Texture Mesh::defaultTexture = Texture(glm::vec3(1.0f));

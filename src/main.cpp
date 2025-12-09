@@ -19,97 +19,6 @@
 #include "texture.h"
 #include "mesh.h"
 
-struct particle
-{
-    glm::vec3 initialPosition;
-    glm::vec3 initialVelocity;
-};
-
-class ParticleSystem
-{
-public:
-    std::vector<particle> particles;
-    std::vector<glm::vec3> positions;
-    Mesh particleMesh;
-    ParticleSystem(int numParticles)
-    {
-        particleMesh.vertices = {
-            glm::vec3(0.0f, 1.0f, 0.0f),
-            glm::vec3(1.0f, 1.0f, 0.0f),
-            glm::vec3(1.0f, 1.0f, 1.0f),
-            glm::vec3(0.0f, 1.0f, 1.0f),
-            glm::vec3(0.0f, 0.0f, 0.0f),
-            glm::vec3(1.0f, 0.0f, 0.0f),
-            glm::vec3(1.0f, 0.0f, 1.0f),
-            glm::vec3(0.0f, 0.0f, 1.0f),
-        };
-        particleMesh.normals = particleMesh.vertices;
-        particleMesh.texCoords = {
-            glm::vec2(0.0f, 0.0f),
-            glm::vec2(1.0f, 0.0f),
-            glm::vec2(1.0f, 1.0f),
-            glm::vec2(1.0f, 1.0f),
-            glm::vec2(0.0f, 0.0f),
-            glm::vec2(1.0f, 0.0f),
-            glm::vec2(1.0f, 1.0f),
-            glm::vec2(1.0f, 1.0f),
-        };
-        particleMesh.indices = {
-            0, 1, 2, 2, 3, 0,
-            4, 5, 6, 6, 7, 4,
-            0, 4, 5, 5, 1, 0,
-            0, 4, 7, 7, 3, 0,
-            2, 6, 5, 5, 1, 2,
-            2, 6, 7, 7, 3, 2
-        };
-        particles.resize(numParticles);
-        positions.resize(numParticles);
-
-        unsigned int texture1 = loadTexture("container2.png", "textures");
-        unsigned int texture2 = loadTexture("container2_specular.png", "textures");
-        Texture diffTex = { .id = texture1, .type = "texture_diffuse", .path = "container2.png"};
-        Texture specTex = { .id = texture2, .type = "texture_specular", .path = "container2_specular.png"};
-        particleMesh.textures.push_back(diffTex);
-        particleMesh.textures.push_back(specTex);
-        particleMesh.bufferToGPU();
-
-        for (int i = 0; i < particles.size(); i++)
-        {
-            float xDir = float(i % 7) / 7.0f - float(i % 3) / 3.0f + float(i % 23) / 23.0f - float(i % 13) / 13.0f;
-            float zDir = float(i % 20) / 20.0f - float(i % 19) / 19.0f + float(i % 13) / 13.0f - float(i % 6) / 6.0f;
-            float yDir = float(i % 23) / 23.0f - float(i % 4) / 4.0f + float(i % 14) / 14.0f - float(i % 5) / 5.0f;
-            particles[i].initialPosition = glm::vec3(5.0f, 0.0f, 5.0f);
-            particles[i].initialVelocity = glm::vec3(5.0 * xDir, 15.0f * yDir, 5.0 * zDir);
-        }
-    }
-
-    void interpolate(float t)
-    {
-        for (int i = 0; i < particles.size(); i++)
-        {
-            positions[i] = particles[i].initialPosition + particles[i].initialVelocity * t - glm::vec3(0.0f, 0.5f * 9.81f, 0.0f) * t * t;
-        }
-    }
-
-    void draw(Shader &shader)
-    {
-        shader.use();
-        GLint meshModel = shader.getUniform("model");
-        GLint meshNormalMatrix = shader.getUniform("normal");
-        for (unsigned int i = 0; i < positions.size(); i++)
-        {
-            glm::mat4 transform = glm::mat4(1.0f);
-            transform = glm::translate(transform, positions[i]);
-            setMat4(meshModel, transform);
-            setMat4(meshNormalMatrix, glm::mat3(glm::transpose(glm::inverse(transform))));
-            particleMesh.draw(shader);
-
-        }
-        glBindVertexArray(0);
-    }
-};
-
-
 struct PointLight
 {
     glm::vec3 position;
@@ -306,11 +215,11 @@ int main()
     // STBI Settings
     stbi_set_flip_vertically_on_load(true);
 
-    std::cout << debugBreak++ << std::endl;
-
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     Shader meshShader = Shader();
     meshShader.compileVertexShader("shaders/mesh_vert.glsl");
@@ -322,21 +231,11 @@ int main()
     lightSourceShader.compileFragmentShader("shaders/lightSource_frag.glsl");
     lightSourceShader.linkShaders();
 
-    std::cout << debugBreak++ << std::endl;
-    //Shader waveShader = Shader();
-    //waveShader.compileVertexShader("shaders/water_vert.glsl");
-    //waveShader.compileFragmentShader("shaders/water_frag.glsl");
-    //waveShader.linkShaders();
-
     unsigned int texture1 = loadTexture("container2.png", "textures");
     unsigned int texture2 = loadTexture("container2_specular.png", "textures");
     unsigned int texture3 = loadTexture("awesomeface.png", "textures");
     unsigned int texture4 = loadTexture("jerma.jpg", "textures");
 
-    std::cout << debugBreak++ << std::endl;
-
-    std::mt19937 rng(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-    std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
 
     const int numVerticesX = 1000;
     const int numVerticesZ = 1000;
@@ -350,142 +249,9 @@ int main()
     std::vector<glm::vec2> terrainTexCoords = std::vector<glm::vec2>(numVerticesX * numVerticesZ, glm::vec2(0.0f));
     std::vector<uint32_t> terrainIndices = std::vector<uint32_t>();
 
-    int index, xIndex, yIndex, zIndex = 0;
-    for (int i = 0; i < numVerticesX; i++)
-    {
-        for (int j = 0; j < numVerticesZ; j++)
-        {
-            index = (i * numVerticesX + j);
-
-            terrainTexCoords[index] = glm::vec2(float(i) / float(numVerticesX - 1), float(j) / float(numVerticesZ - 1));
-
-            float x = sizeX * (float(i) / numVerticesX - 0.5f);
-            float z = sizeZ * (float(j) / numVerticesZ - 0.5f);
-            float y = 0.0f;
-            for (int h = 0; h < layers; h++)
-            {
-                y += amplitude[h] * perlin.noise2D(x * frequency[h], z * frequency[h]);
-            }
-
-            terrainVertices[index].x = x;
-            terrainVertices[index].z = z;
-            terrainVertices[index].y = y;
-
-            terrainNormals[index].y = 1.0f;
-
-            if (i > 0 && j > 0)
-            {
-                uint32_t topRight = i * numVerticesX + j;
-                uint32_t topLeft = (i - 1) * numVerticesX + j;
-                uint32_t bottomLeft = (i - 1) * numVerticesX + j - 1;
-                uint32_t bottomRight = i * numVerticesX + j - 1;
-                terrainIndices.push_back(topLeft);
-                terrainIndices.push_back(bottomLeft);
-                terrainIndices.push_back(bottomRight);
-                terrainIndices.push_back(bottomRight);
-                terrainIndices.push_back(topRight);
-                terrainIndices.push_back(topLeft);
-
-                glm::vec3 a, b;
-                a = terrainVertices[topLeft] - terrainVertices[topRight];
-                b = terrainVertices[topLeft] - terrainVertices[bottomLeft];
-                terrainNormals[index] = glm::normalize(glm::cross(a, b));
-            }
-            
-        }
-    }
-
-    float vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
-    };
-
-    unsigned int VAOs[1] = { 0 };
-    unsigned int VBOs[3] = { 0 };
-    unsigned int EBOs[1] = { 0 };
-    unsigned int lightVAO;
-    unsigned int lightVBO;
-
-    glGenVertexArrays(1, VAOs);
-    glGenBuffers(3, VBOs);
-    glGenBuffers(1, EBOs);
-
-    // Light VAO setup
-    glGenVertexArrays(1, &lightVAO);
-    glGenBuffers(1, &lightVBO);
-    glBindVertexArray(lightVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *) 0);
-    glEnableVertexAttribArray(0);
-    
-    // Mesh VAO setup
-    glBindVertexArray(VAOs[0]);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * terrainIndices.size(), terrainIndices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * terrainVertices.size(), terrainVertices.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*) 0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * terrainNormals.size(), terrainNormals.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*) 0);
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[2]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * terrainTexCoords.size(), terrainTexCoords.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*) 0);
-    glEnableVertexAttribArray(2);
-
-    // Reset
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
 
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 
 
     glm::vec3 blue = glm::vec3(0.0f, 0.1f, 0.9f);
@@ -614,7 +380,6 @@ int main()
         .constant = 1.0f
     };
 
-    ParticleSystem particleSystem(300);
 
     lastFrame = glfwGetTime();
     // Render Loop
@@ -631,7 +396,6 @@ int main()
         processInput(window);
         static float currentTime = 0.0f;
         currentTime += deltaTime;
-        particleSystem.interpolate(currentTime);
         if (currentTime > 10.0f) { currentTime = 0.0f; }
 
         // Canvas reset
@@ -640,14 +404,12 @@ int main()
 
         // Send camera data to shaders
         lightSourceShader.use();
-        glBindVertexArray(lightVAO);
         setMat4(lightCamera, camera.transform);
         setVec3(lightColor, lightCol);
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         meshShader.use();
-        glBindVertexArray(VAOs[0]);
         spotLight.position += (camera.position - spotLight.position) * deltaTime * 5.0f;
         spotLight.direction += (camera.front - spotLight.direction) * deltaTime * 5.0f;
         setSpotLight(spotLightUniform, spotLight);
@@ -661,31 +423,12 @@ int main()
         setMat4(meshNormalMatrix, glm::mat3(glm::transpose(glm::inverse(glm::mat4(1.0f)))));
         glDrawElements(GL_TRIANGLES, terrainIndices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
-        particleSystem.draw(meshShader);
 
-        /*
-        for (unsigned int i = 0; i < 10; i++)
-        {
-            float angle = 20.0f * i;
-            glm::mat4 transform = glm::mat4(1.0f);
-            transform = glm::translate(transform, cubePositions[i]);
-            transform = glm::rotate(transform, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            setMat4(meshModel, transform);
-            setMat4(meshNormalMatrix, glm::mat3(glm::transpose(glm::inverse(transform))));
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
-        */
 
         // Swap frame buffers and get next events
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-    glDeleteVertexArrays(1, VAOs);
-    glDeleteBuffers(3, VBOs);
-    glDeleteBuffers(1, EBOs);
-
-    glDeleteVertexArrays(1, &lightVAO);
-    glDeleteBuffers(1, &lightVBO);
 
     glfwTerminate();
 

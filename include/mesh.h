@@ -13,10 +13,8 @@
 
 class Mesh
 {
-    public:
-        GLuint VAO;
-        GLuint VBOs[3];
-        GLuint EBO;
+public:
+        glm::mat4 transform;
         // VBO Data
         std::vector<glm::vec3> vertices;
         std::vector<glm::vec3> normals;
@@ -32,6 +30,11 @@ class Mesh
         void bufferToGPU();
         void draw(Shader &shader);
 
+private:
+        GLuint VAO;
+        GLuint VBOs[3];
+        GLuint EBO;
+        static Texture defaultTexture;
 };
 
 Mesh makefibonnacciSphere(int samples);

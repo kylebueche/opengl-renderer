@@ -1,7 +1,25 @@
 #version 460 core
 struct Material {
+    // Diffuse Textures
     sampler2D texture_diffuse1;
+    sampler2D texture_diffuse2;
+    sampler2D texture_diffuse3;
+    sampler2D texture_diffuse4;
+    sampler2D texture_diffuse5;
+    sampler2D texture_diffuse6;
+    sampler2D texture_diffuse7;
+    sampler2D texture_diffuse8;
+
+    // Specular Textures
     sampler2D texture_specular1;
+    sampler2D texture_specular2;
+    sampler2D texture_specular3;
+    sampler2D texture_specular4;
+    sampler2D texture_specular5;
+    sampler2D texture_specular6;
+    sampler2D texture_specular7;
+    sampler2D texture_specular8;
+
     float shininess;
 };
 
@@ -142,9 +160,27 @@ vec3 lightFromSpotLight(SpotLight light, FragmentMaterial mat)
 
 void main()
 {
+    vec4 diffuseTextures = texture(material.texture_diffuse1, TexCoords);
+    diffuseTextures *= texture(material.texture_diffuse2, TexCoords);
+    diffuseTextures *= texture(material.texture_diffuse3, TexCoords);
+    diffuseTextures *= texture(material.texture_diffuse4, TexCoords);
+    diffuseTextures *= texture(material.texture_diffuse5, TexCoords);
+    diffuseTextures *= texture(material.texture_diffuse6, TexCoords);
+    diffuseTextures *= texture(material.texture_diffuse7, TexCoords);
+    diffuseTextures *= texture(material.texture_diffuse8, TexCoords);
+
+    vec4 specularTextures = texture(material.texture_specular1, TexCoords);
+    specularTextures *= texture(material.texture_specular2, TexCoords);
+    specularTextures *= texture(material.texture_specular3, TexCoords);
+    specularTextures *= texture(material.texture_specular4, TexCoords);
+    specularTextures *= texture(material.texture_specular5, TexCoords);
+    specularTextures *= texture(material.texture_specular6, TexCoords);
+    specularTextures *= texture(material.texture_specular7, TexCoords);
+    specularTextures *= texture(material.texture_specular8, TexCoords);
+
     FragmentMaterial mat;
-    mat.diffuse = vec3(texture(material.diffuse, TexCoords));
-    mat.specular = vec3(texture(material.specular, TexCoords));
+    mat.diffuse = vec3(diffuseTextures);
+    mat.specular = vec3(specularTextures);
     mat.ambient = mat.diffuse;
     mat.shininess = material.shininess;
 

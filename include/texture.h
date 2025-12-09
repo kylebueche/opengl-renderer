@@ -5,19 +5,20 @@
 #include <iostream>
 #include <stb_image.h>
 
-enum TEXTURE_TYPE
-{
-    diffuse,
-    specular
-};
+#include "glm/vec3.hpp"
 
 struct Texture
 {
     GLuint id;
     std::string type;
     std::string path;
+
+    Texture() = default;
+    Texture(glm::vec3 color);
+    Texture(GLuint texture, std::string type, std::string path);
 };
 
 GLint loadTexture(const char* texturePath, std::string directory);
+GLint colorTexture(glm::vec3 color);
 
 #endif
