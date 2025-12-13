@@ -112,12 +112,12 @@ void Mesh::draw(Shader& shader)
     glBindTexture(GL_TEXTURE_2D, defaultTexture.id);
     for (int i = diffuseNr; i <= 8; i++)
     {
-        GLint uniform = shader.getUniform(("material.texture_diffuse" + std::to_string(i)).c_str());
+        GLint uniform = shader.getUniform(("material.texture_diffuse[" + std::to_string(i) + "]").c_str());
         setInt(uniform, textures.size());
     }
     for (int i = specularNr; i <= 8; i++)
     {
-        GLint uniform = shader.getUniform(("material.specular_diffuse" + std::to_string(i)).c_str());
+        GLint uniform = shader.getUniform(("material.specular_diffuse[" + std::to_string(i) + "]").c_str());
         setInt(uniform, textures.size());
     }
     glActiveTexture(GL_TEXTURE0);

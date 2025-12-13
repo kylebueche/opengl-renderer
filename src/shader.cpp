@@ -158,3 +158,87 @@ void setMat4(GLint uniform, glm::mat4 mat)
 {
     glUniformMatrix4fv(uniform, 1, GL_FALSE, glm::value_ptr(mat));
 }
+
+DirLightUniform Shader::getDirLightUniform(std::string uniformName)
+{
+    DirLightUniform uniform;
+    uniform.direction = getUniform((uniformName + ".direction").c_str());
+    uniform.intensity = getUniform((uniformName + ".intensity").c_str());
+
+    uniform.ambient = getUniform((uniformName + ".ambient").c_str());
+    uniform.diffuse = getUniform((uniformName + ".diffuse").c_str());
+    uniform.specular = getUniform((uniformName + ".specular").c_str());
+}
+PointLightUniform Shader::getPointLightUniform(std::string uniformName)
+{
+    PointLightUniform light;
+    light.position = getUniform((uniformName + ".position").c_str());
+    light.intensity = getUniform((uniformName + ".intensity").c_str());
+
+    light.ambient = getUniform((uniformName + ".ambient").c_str());
+    light.diffuse = getUniform((uniformName + ".diffuse").c_str());
+    light.specular = getUniform((uniformName + ".specular").c_str());
+
+    light.constant = getUniform((uniformName + ".constant").c_str());
+    light.linear = getUniform((uniformName + ".linear").c_str());
+    light.quadratic = getUniform((uniformName + ".quadratic").c_str());
+}
+SpotLightUniform Shader::getSpotLightUniform(std::string uniformName)
+{
+    SpotLightUniform light;
+    light.position = getUniform((uniformName + ".position").c_str());
+    light.direction = getUniform((uniformName + ".direction").c_str());
+    light.angle = getUniform((uniformName + ".angle").c_str());
+    light.fadeAngle = getUniform((uniformName + ".fadeAngle").c_str());
+    light.intensity = getUniform((uniformName + ".intensity").c_str());
+
+    light.ambient = getUniform((uniformName + ".ambient").c_str());
+    light.diffuse = getUniform((uniformName + ".diffuse").c_str());
+    light.specular = getUniform((uniformName + ".specular").c_str());
+
+    light.constant = getUniform((uniformName + ".constant").c_str());
+    light.linear = getUniform((uniformName + ".linear").c_str());
+    light.quadratic = getUniform((uniformName + ".quadratic").c_str());
+}
+
+void setDirLight(DirLightUniform uniform, DirLight dirLight)
+{
+    setVec3(uniform.direction, dirLight.direction);
+    setFloat(uniform.intensity, dirLight.intensity);
+
+    setVec3(uniform.ambient, dirLight.ambient);
+    setVec3(uniform.diffuse, dirLight.diffuse);
+    setVec3(uniform.specular, dirLight.specular);
+}
+
+void setPointLight(PointLightUniform uniform, PointLight pointLight)
+{
+    setVec3(uniform.position, pointLight.position);
+    setFloat(uniform.intensity, pointLight.intensity);
+
+    setVec3(uniform.ambient, pointLight.ambient);
+    setVec3(uniform.diffuse, pointLight.diffuse);
+    setVec3(uniform.specular, pointLight.specular);
+
+    setFloat(uniform.constant, pointLight.constant);
+    setFloat(uniform.linear, pointLight.linear);
+    setFloat(uniform.quadratic, pointLight.quadratic);
+}
+
+
+void setSpotLight(SpotLightUniform uniform, SpotLight spotLight)
+{
+    setVec3(uniform.position, spotLight.position);
+    setVec3(uniform.direction, spotLight.direction);
+    setFloat(uniform.angle, spotLight.angle);
+    setFloat(uniform.fadeAngle, spotLight.fadeAngle);
+    setFloat(uniform.intensity, spotLight.intensity);
+
+    setVec3(uniform.ambient, spotLight.ambient);
+    setVec3(uniform.diffuse, spotLight.diffuse);
+    setVec3(uniform.specular, spotLight.specular);
+
+    setFloat(uniform.constant, spotLight.constant);
+    setFloat(uniform.linear, spotLight.linear);
+    setFloat(uniform.quadratic, spotLight.quadratic);
+}

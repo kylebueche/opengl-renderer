@@ -1,29 +1,20 @@
 #version 460 core
 struct Material {
+    vec3 baseDiffuseColor;
+    vec3 baseSpecularColor;
+
     // Diffuse Textures
-    sampler2D texture_diffuse1;
-    sampler2D texture_diffuse2;
-    sampler2D texture_diffuse3;
-    sampler2D texture_diffuse4;
-    sampler2D texture_diffuse5;
-    sampler2D texture_diffuse6;
-    sampler2D texture_diffuse7;
-    sampler2D texture_diffuse8;
+    sampler2D texture_diffuse[8];
+    int numDiffuseTextures;
 
     // Specular Textures
-    sampler2D texture_specular1;
-    sampler2D texture_specular2;
-    sampler2D texture_specular3;
-    sampler2D texture_specular4;
-    sampler2D texture_specular5;
-    sampler2D texture_specular6;
-    sampler2D texture_specular7;
-    sampler2D texture_specular8;
+    sampler2D texture_specular[8];
+    int numSpecularTextures;
 
     float shininess;
 };
 
-struct DirectionalLight {
+struct DirLight {
     vec3 direction;
     float intensity;
 
@@ -69,9 +60,13 @@ struct FragmentMaterial {
 };
 
 uniform Material material;
-uniform PointLight pointLight;
-uniform SpotLight spotLight;
-uniform DirectionalLight dirLight;
+uniform PointLight pointLights[8];
+uniform SpotLight spotLights[8];
+uniform DirLight dirLights[8];
+
+uniform int numPointLights;
+uniform int numSpotLights;
+uniform int numDirLights;
 
 out vec4 FragColor;
 
@@ -80,6 +75,77 @@ in vec3 FragPos;
 in vec2 TexCoords;
 
 uniform vec3 viewPos;
+
+vec4 calculateDiffuseColor();
+vec4 calculateSpecularColor();
+vec3 lightFromPointLight(PointLight, FragmentMaterial);
+vec3 lightFromDirLight(DirLight, FragmentMaterial);
+vec3 lightFromSpotLight(SpotLight, FragmentMaterial);
+vec3 lightFromPointLights(FragmentMaterial);
+vec3 lightFromDirLights(FragmentMaterial);
+vec3 lightFromSpotLights(FragmentMaterial);
+
+void main()
+{
+
+    FragmentMaterial mat;
+    mat.diffuse = vec3(calculateDiffuseColor());
+    mat.specular = vec3(calculateSpecularColor());
+    mat.ambient = mat.diffuse;
+    mat.shininess = material.shininess;
+
+    vec3 color = lightFromPointLights(mat);
+    color += lightFromDirLights(mat);
+    color += lightFromSpotLights(mat);
+
+    FragColor = vec4(color, 1.0);
+}
+
+// Blends the diffuse base color with each diffuse texture
+vec4 calculateDiffuseColor()
+{
+    vec4 diffuse = vec4(material.baseDiffuseColor, 1.0);
+    int size = min(material.numDiffuseTextures, 8);
+    for (int i = 0; i < size; i++)
+    {
+        diffuse += texture(material.texture_diffuse[i], texCoords);
+    }
+    return diffuse;
+}
+
+// Blends the specular base color with each specular texture
+vec4 calculateSpecularColor()
+{
+    vec4 specular = vec4(material.baseSpecularColor, 1.0);
+    int size = min(material.numSpecularTextures, 8);
+    for (int i = 0; i < size; i++)
+    {
+        specular += texture(material.texture_specular[i], texCoords);
+    }
+    return specular;
+}
+
+vec3 lightFromPointLights(FragmentMaterial mat)
+{
+    vec3 result = vec3(0.0);
+    int numLights = min(numPointLights, 8);
+    for (int i = 0; i < numLights; i++)
+    {
+        result = result + lightFromPointLight(pointLights[i], mat);
+    }
+    return result;
+}
+
+vec3 lightFromDirLights(FragmentMaterial mat)
+{
+    vec3 result = vec3(0.0);
+    int numLights = min(numDirLights, 8);
+    for (int i = 0; i < numLights; i++)
+    {
+        result = result + lightFromDirLight(dirLghts[i], mat);
+    }
+    return result;
+}
 
 vec3 lightFromPointLight(PointLight light, FragmentMaterial mat)
 {
@@ -103,10 +169,12 @@ vec3 lightFromPointLight(PointLight light, FragmentMaterial mat)
     // Divide brightness by the length squared
     float dist = distance(light.position, FragPos);
     result = light.intensity * result / (light.quadratic * dist * dist + light.linear * dist + light.constant);
+
     return result;
 }
 
-vec3 lightFromDirectionalLight(DirectionalLight light, FragmentMaterial mat)
+
+vec3 lightFromDirLight(DirLight light, FragmentMaterial mat)
 {
     // ambient
     vec3 ambient = light.ambient * mat.ambient;
@@ -156,37 +224,4 @@ vec3 lightFromSpotLight(SpotLight light, FragmentMaterial mat)
     result = spotIntensity * light.intensity * result / (light.quadratic * dist * dist + light.linear * dist + light.constant);
 
     return result;
-}
-
-void main()
-{
-    vec4 diffuseTextures = texture(material.texture_diffuse1, TexCoords);
-    diffuseTextures *= texture(material.texture_diffuse2, TexCoords);
-    diffuseTextures *= texture(material.texture_diffuse3, TexCoords);
-    diffuseTextures *= texture(material.texture_diffuse4, TexCoords);
-    diffuseTextures *= texture(material.texture_diffuse5, TexCoords);
-    diffuseTextures *= texture(material.texture_diffuse6, TexCoords);
-    diffuseTextures *= texture(material.texture_diffuse7, TexCoords);
-    diffuseTextures *= texture(material.texture_diffuse8, TexCoords);
-
-    vec4 specularTextures = texture(material.texture_specular1, TexCoords);
-    specularTextures *= texture(material.texture_specular2, TexCoords);
-    specularTextures *= texture(material.texture_specular3, TexCoords);
-    specularTextures *= texture(material.texture_specular4, TexCoords);
-    specularTextures *= texture(material.texture_specular5, TexCoords);
-    specularTextures *= texture(material.texture_specular6, TexCoords);
-    specularTextures *= texture(material.texture_specular7, TexCoords);
-    specularTextures *= texture(material.texture_specular8, TexCoords);
-
-    FragmentMaterial mat;
-    mat.diffuse = vec3(diffuseTextures);
-    mat.specular = vec3(specularTextures);
-    mat.ambient = mat.diffuse;
-    mat.shininess = material.shininess;
-
-    vec3 color = lightFromPointLight(pointLight, mat);
-    color += lightFromDirectionalLight(dirLight, mat);
-    color += lightFromSpotLight(spotLight, mat);
-
-    FragColor = vec4(color, 1.0);
 }

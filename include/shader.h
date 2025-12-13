@@ -10,6 +10,12 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <bits/stl_tempbuf.h>
+#include "lights.h"
+
+struct DirLightUniform;
+struct PointLightUniform;
+struct SpotLightUniform;
 
 class Shader
 {
@@ -33,6 +39,10 @@ class Shader
 
         void use();
         GLint getUniform(const std::string &name) const;
+
+        DirLightUniform getDirLightUniform(std::string uniformName);
+        PointLightUniform getPointLightUniform(std::string uniformName);
+        SpotLightUniform getSpotLightUniform(std::string uniformName);
 };
 
 void setBool(GLint uniform, bool value);
@@ -42,5 +52,51 @@ void setVec2(GLint uniform, glm::vec2 vec);
 void setVec3(GLint uniform, glm::vec3 vec);
 void setVec4(GLint uniform, glm::vec4 vec);
 void setMat4(GLint uniform, glm::mat4 mat);
+void setDirLight(DirLightUniform uniform, DirLight dirLight);
+void setPointLight(DirLightUniform uniform, PointLight pointLight);
+void setSpotLight(DirLightUniform uniform, SpotLight spotLight);
+
+struct DirLightUniform {
+    GLint direction;
+    GLint intensity;
+
+    // Color
+    GLint ambient;
+    GLint diffuse;
+    GLint specular;
+};
+
+struct PointLightUniform {
+    GLint position;
+    GLint intensity;
+
+    // Color
+    GLint ambient;
+    GLint diffuse;
+    GLint specular;
+
+    // Attenuation
+    GLint quadratic;
+    GLint linear;
+    GLint constant;
+};
+
+struct SpotLightUniform {
+    GLint position;
+    GLint direction;
+    GLint angle;
+    GLint fadeAngle;
+    GLint intensity;
+
+    // Color
+    GLint ambient;
+    GLint diffuse;
+    GLint specular;
+
+    // Attenuation
+    GLint quadratic;
+    GLint linear;
+    GLint constant;
+};
 
 #endif
