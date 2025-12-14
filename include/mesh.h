@@ -10,6 +10,7 @@
 #include <string>
 #include "shader.h"
 #include "texture.h"
+#include "material.h"
 
 class Mesh
 {
@@ -21,8 +22,8 @@ public:
         std::vector<glm::vec2> texCoords;
         // EBO Data
         std::vector<unsigned int> indices;
-        // Texture Data
-        std::vector<Texture> textures;
+
+        Material material;
 
         Mesh();
         Mesh(const Mesh& other);
@@ -34,7 +35,6 @@ private:
         GLuint VAO;
         GLuint VBOs[3];
         GLuint EBO;
-        static Texture defaultTexture;
 };
 
 Mesh makefibonnacciSphere(int samples);

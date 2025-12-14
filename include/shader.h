@@ -12,10 +12,12 @@
 #include <vector>
 #include <bits/stl_tempbuf.h>
 #include "lights.h"
+#include "material.h"
 
 struct DirLightUniform;
 struct PointLightUniform;
 struct SpotLightUniform;
+struct MaterialUniform;
 
 class Shader
 {
@@ -43,6 +45,7 @@ class Shader
         DirLightUniform getDirLightUniform(std::string uniformName);
         PointLightUniform getPointLightUniform(std::string uniformName);
         SpotLightUniform getSpotLightUniform(std::string uniformName);
+        MaterialUniform getMaterialUniform(std::string uniformName);
 };
 
 void setBool(GLint uniform, bool value);
@@ -55,6 +58,7 @@ void setMat4(GLint uniform, glm::mat4 mat);
 void setDirLight(DirLightUniform uniform, DirLight dirLight);
 void setPointLight(DirLightUniform uniform, PointLight pointLight);
 void setSpotLight(DirLightUniform uniform, SpotLight spotLight);
+void setMaterial(MaterialUniform uniform, Material material);
 
 struct DirLightUniform {
     GLint direction;
@@ -97,6 +101,17 @@ struct SpotLightUniform {
     GLint quadratic;
     GLint linear;
     GLint constant;
+};
+
+struct MaterialUniform
+{
+    GLint baseDiffuseColor;
+    GLint baseSpecularColor;
+    GLint diffuseTextures[8];
+    GLint specularTextures[8];
+    GLint numDiffuseTextures;
+    GLint numSpecularTextures;
+    GLint shininess;
 };
 
 #endif

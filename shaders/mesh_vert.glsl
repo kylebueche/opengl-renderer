@@ -4,10 +4,16 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
 // Instanced
 layout (location = 3) in mat4 aModel;
+layout (location = 4) in mat3 aNormal; // Necessary?
 
 out vec3 FragPos;
 out vec3 Normal;
 out vec2 TexCoords;
+
+struct Mesh {
+    mat4 model;
+    mat3 normal;
+};
 
 uniform mat4 projection;
 uniform mat4 view;

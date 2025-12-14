@@ -146,7 +146,7 @@ struct Material
 struct MaterialUniform
 {
     GLint diffuse;
-    GLint specular;
+    GLint baseSpecularColor;
     GLint shininess;
 };
 

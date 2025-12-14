@@ -59,6 +59,12 @@ struct FragmentMaterial {
     float shininess;
 };
 
+struct Camera {
+    vec3 viewPos;
+    mat4 projection;
+    mat4 view;
+};
+
 uniform Material material;
 uniform PointLight pointLights[8];
 uniform SpotLight spotLights[8];

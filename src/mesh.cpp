@@ -11,8 +11,7 @@ Mesh::Mesh()
     normals = std::vector<glm::vec3>();
     texCoords = std::vector<glm::vec2>();
     indices = std::vector<unsigned int>();
-    textures = std::vector<Texture>();
-    bufferToGPU();
+    material = Material();
 }
 
 Mesh::Mesh(const Mesh& other)
@@ -24,7 +23,6 @@ Mesh::Mesh(const Mesh& other)
     normals = other.normals;
     texCoords = other.texCoords;
     indices = other.indices;
-    bufferToGPU();
 }
 
 Mesh::~Mesh()
@@ -81,51 +79,19 @@ Mesh triangle()
         glm::vec3(0.0f, 0.0f, 1.0f)
     };
     mesh.indices = { 0, 1, 2 };
+    mesh.material = Material();
+    mesh.bufferToGPU();
     return mesh;
 }
 
 void Mesh::draw(Shader& shader)
 {
-    GLuint diffuseNr = 1;
-    GLuint specularNr = 1;
+    // Set shader uniform properties
+    MaterialUniform matUniform = shader.getMaterialUniform("material");
+    setMaterial(matUniform, material);
 
-    for (unsigned int i = 0; i < textures.size(); i++)
-    {
-        glActiveTexture(GL_TEXTURE0 + i);
-        std::string number;
-        std::string name = textures[i].type;
-        if (name == "texture_diffuse")
-        {
-            number = std::to_string(diffuseNr);
-            diffuseNr++;
-        }
-        else if (name == "texture_specular")
-        {
-            number = std::to_string(specularNr);
-            specularNr++;
-        }
-        GLint uniform = shader.getUniform(("material." + name + number).c_str());
-        setInt(uniform, i);
-        glBindTexture(GL_TEXTURE_2D, textures[i].id);
-    }
-    glActiveTexture(textures.size());
-    glBindTexture(GL_TEXTURE_2D, defaultTexture.id);
-    for (int i = diffuseNr; i <= 8; i++)
-    {
-        GLint uniform = shader.getUniform(("material.texture_diffuse[" + std::to_string(i) + "]").c_str());
-        setInt(uniform, textures.size());
-    }
-    for (int i = specularNr; i <= 8; i++)
-    {
-        GLint uniform = shader.getUniform(("material.specular_diffuse[" + std::to_string(i) + "]").c_str());
-        setInt(uniform, textures.size());
-    }
-    glActiveTexture(GL_TEXTURE0);
-
+    // Bind pre-buffered data on the GPU side
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
-
 }
-
-Texture Mesh::defaultTexture = Texture(glm::vec3(1.0f));

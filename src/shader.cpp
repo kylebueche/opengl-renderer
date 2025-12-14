@@ -168,6 +168,7 @@ DirLightUniform Shader::getDirLightUniform(std::string uniformName)
     uniform.ambient = getUniform((uniformName + ".ambient").c_str());
     uniform.diffuse = getUniform((uniformName + ".diffuse").c_str());
     uniform.specular = getUniform((uniformName + ".specular").c_str());
+    return uniform;
 }
 PointLightUniform Shader::getPointLightUniform(std::string uniformName)
 {
@@ -182,7 +183,9 @@ PointLightUniform Shader::getPointLightUniform(std::string uniformName)
     light.constant = getUniform((uniformName + ".constant").c_str());
     light.linear = getUniform((uniformName + ".linear").c_str());
     light.quadratic = getUniform((uniformName + ".quadratic").c_str());
+    return light;
 }
+
 SpotLightUniform Shader::getSpotLightUniform(std::string uniformName)
 {
     SpotLightUniform light;
@@ -199,6 +202,23 @@ SpotLightUniform Shader::getSpotLightUniform(std::string uniformName)
     light.constant = getUniform((uniformName + ".constant").c_str());
     light.linear = getUniform((uniformName + ".linear").c_str());
     light.quadratic = getUniform((uniformName + ".quadratic").c_str());
+    return light;
+}
+
+MaterialUniform Shader::getMaterialUniform(std::string uniformName)
+{
+    MaterialUniform uniform;
+    uniform.baseDiffuseColor = getUniform((uniformName + ".baseDiffuseColor").c_str());
+    uniform.baseSpecularColor = getUniform((uniformName + ".baseSpecularColor").c_str());
+    for (int i = 0; i < 8; i++)
+    {
+        uniform.diffuseTextures[i] = getUniform((uniformName + ".diffuseTextures[" + std::to_string(i) + "]").c_str());
+        uniform.specularTextures[i] = getUniform((uniformName + ".specularTextures[" + std::to_string(i) + "]").c_str());
+    }
+    uniform.numDiffuseTextures = getUniform((uniformName + ".numDiffuseTextures").c_str());
+    uniform.numSpecularTextures = getUniform((uniformName + ".numSpecularTextures").c_str());
+    uniform.shininess = getUniform((uniformName + ".shininess").c_str());
+    return uniform;
 }
 
 void setDirLight(DirLightUniform uniform, DirLight dirLight)
@@ -241,4 +261,28 @@ void setSpotLight(SpotLightUniform uniform, SpotLight spotLight)
     setFloat(uniform.constant, spotLight.constant);
     setFloat(uniform.linear, spotLight.linear);
     setFloat(uniform.quadratic, spotLight.quadratic);
+}
+
+void setMaterial(MaterialUniform uniform, Material material)
+{
+    setVec3(uniform.baseDiffuseColor, material.baseDiffuseColor);
+    setVec3(uniform.baseSpecularColor, material.baseSpecularColor);
+    int nDiffuse = std::min(8, int(material.diffuseTextures.size()));
+    int nSpecular = std::min(8, int(material.specularTextures.size()));
+    for (int i = 0; i < nDiffuse; i++)
+    {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, material.diffuseTextures[i]);
+        setInt(uniform.diffuseTextures[i], GL_TEXTURE0 + i);
+    }
+    for (int i = 0; i < nSpecular; i++)
+    {
+        glActiveTexture(GL_TEXTURE0 + nDiffuse + i);
+        glBindTexture(GL_TEXTURE_2D, material.specularTextures[i]);
+        setInt(uniform.specularTextures[i], GL_TEXTURE0 + nDiffuse + i);
+    }
+    glActiveTexture(GL_TEXTURE0);
+    setInt(uniform.numDiffuseTextures, nDiffuse);
+    setInt(uniform.numSpecularTextures, nSpecular);
+    setFloat(material.shininess, material.shininess);
 }

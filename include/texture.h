@@ -19,6 +19,5 @@ struct Texture
 };
 
 GLint loadTexture(const char* texturePath, std::string directory);
-GLint colorTexture(glm::vec3 color);
 
 #endif
