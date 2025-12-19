@@ -1,6 +1,6 @@
 #include "camera.h"
 
-PlayerCamera::PlayerCamera()
+Camera::Camera()
 {
     fov = 45.0f;
     width = 800;
@@ -17,57 +17,51 @@ PlayerCamera::PlayerCamera()
 
     updateView();
     updateProjection();
-    updateTransform();
 }
 
-void PlayerCamera::updateView()
+void Camera::updateView()
 {
     view = glm::lookAt(position, position + front, up);
 }
 
-void PlayerCamera::updateProjection()
+void Camera::updateProjection()
 {
     projection = glm::perspective(glm::radians(45.0f), (float) width / (float) height, nearPlane, farPlane);
 }
 
-void PlayerCamera::updateTransform()
-{
-    transform = projection * view;
-}
-
-void PlayerCamera::moveForward(float distance)
+void Camera::moveForward(float distance)
 {
     glm::vec3 frontXZ = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
     position += frontXZ * distance;
 }
 
-void PlayerCamera::moveBackward(float distance)
+void Camera::moveBackward(float distance)
 {
     glm::vec3 frontXZ = glm::normalize(glm::vec3(front.x, 0.0f, front.z));
     position -= frontXZ * distance;
 }
 
-void PlayerCamera::moveLeft(float distance)
+void Camera::moveLeft(float distance)
 {
     position -= glm::normalize(glm::cross(front, up)) * distance;
 }
 
-void PlayerCamera::moveRight(float distance)
+void Camera::moveRight(float distance)
 {
     position += glm::normalize(glm::cross(front, up)) * distance;
 }
 
-void PlayerCamera::moveUp(float distance)
+void Camera::moveUp(float distance)
 {
     position += up * distance;
 }
 
-void PlayerCamera::moveDown(float distance)
+void Camera::moveDown(float distance)
 {
     position -= up * distance;
 }
 
-void PlayerCamera::rotateBy(float xAngle, float yAngle)
+void Camera::rotateBy(float xAngle, float yAngle)
 {
     yaw += xAngle;
     pitch += yAngle;
@@ -80,7 +74,7 @@ void PlayerCamera::rotateBy(float xAngle, float yAngle)
     front = glm::normalize(front);
 }
 
-void PlayerCamera::zoomBy(float amount)
+void Camera::zoomBy(float amount)
 {
     fov += amount;
     fov = std::min(std::max(fov, 1.0f), 45.0f);

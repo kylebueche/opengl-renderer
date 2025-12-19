@@ -159,6 +159,11 @@ void setMat4(GLint uniform, glm::mat4 mat)
     glUniformMatrix4fv(uniform, 1, GL_FALSE, glm::value_ptr(mat));
 }
 
+void setMat3(GLint uniform, glm::mat3 mat)
+{
+    glUniformMatrix3fv(uniform, 1, GL_FALSE, glm::value_ptr(mat));
+}
+
 DirLightUniform Shader::getDirLightUniform(std::string uniformName)
 {
     DirLightUniform uniform;
@@ -272,17 +277,30 @@ void setMaterial(MaterialUniform uniform, Material material)
     for (int i = 0; i < nDiffuse; i++)
     {
         glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, material.diffuseTextures[i]);
+        glBindTexture(GL_TEXTURE_2D, material.diffuseTextures[i].id);
         setInt(uniform.diffuseTextures[i], GL_TEXTURE0 + i);
     }
     for (int i = 0; i < nSpecular; i++)
     {
         glActiveTexture(GL_TEXTURE0 + nDiffuse + i);
-        glBindTexture(GL_TEXTURE_2D, material.specularTextures[i]);
+        glBindTexture(GL_TEXTURE_2D, material.specularTextures[i].id);
         setInt(uniform.specularTextures[i], GL_TEXTURE0 + nDiffuse + i);
     }
     glActiveTexture(GL_TEXTURE0);
     setInt(uniform.numDiffuseTextures, nDiffuse);
     setInt(uniform.numSpecularTextures, nSpecular);
     setFloat(material.shininess, material.shininess);
+}
+
+void setCamera(CameraUniform uniform, Camera camera)
+{
+    setVec3(uniform.position, camera.position);
+    setMat4(uniform.projection, camera.projection);
+    setMat4(uniform.view, camera.view);
+}
+
+void setMesh(MeshUniform uniform, Mesh& mesh)
+{
+    setMat4(uniform.model, mesh.model);
+    setMat3(uniform.normal, mesh.normal);
 }

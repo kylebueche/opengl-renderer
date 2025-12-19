@@ -9,7 +9,7 @@ void Model::Draw(Shader &shader)
 {
     for (int i = 0; i < meshes.size(); i++)
     {
-        meshes[i].draw(shader);
+        meshes[i].draw();
     }
 }
 
@@ -77,8 +77,8 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
     if (mesh->mMaterialIndex >= 0)
     {
         aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-        loadMaterialTextures(newMesh.textures, material, aiTextureType_DIFFUSE, "texture_diffuse");
-        loadMaterialTextures(newMesh.textures, material, aiTextureType_SPECULAR, "texture_specular");
+        //loadMaterialTextures(newMesh., material, aiTextureType_DIFFUSE, "texture_diffuse");
+        //loadMaterialTextures(newMesh.textures, material, aiTextureType_SPECULAR, "texture_specular");
     }
     return newMesh;
 }
@@ -90,9 +90,9 @@ void Model::loadMaterialTextures(std::vector<Texture> &textures, aiMaterial *mat
         aiString str;
         mat->GetTexture(type, i, &str);
         Texture texture;
-        texture.id = loadTexture(str.C_Str(), directory);
-        texture.type = typeName;
-        texture.path = str.C_Str();
+        //texture.id = loadTexture(str.C_Str(), directory);
+        //texture.type = typeName;
+        //texture.path = str.C_Str();
         textures.push_back(texture);
     }
 }

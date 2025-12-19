@@ -60,9 +60,7 @@ struct FragmentMaterial {
 };
 
 struct Camera {
-    vec3 viewPos;
-    mat4 projection;
-    mat4 view;
+    vec3 position;
 };
 
 uniform Material material;
@@ -74,13 +72,15 @@ uniform int numPointLights;
 uniform int numSpotLights;
 uniform int numDirLights;
 
+uniform Camera camera;
+
 out vec4 FragColor;
 
 in vec3 Normal;
 in vec3 FragPos;
 in vec2 TexCoords;
 
-uniform vec3 viewPos;
+//uniform vec3 viewPos;
 
 vec4 calculateDiffuseColor();
 vec4 calculateSpecularColor();
@@ -114,7 +114,7 @@ vec4 calculateDiffuseColor()
     int size = min(material.numDiffuseTextures, 8);
     for (int i = 0; i < size; i++)
     {
-        diffuse += texture(material.texture_diffuse[i], texCoords);
+        diffuse += texture(material.texture_diffuse[i], TexCoords);
     }
     return diffuse;
 }
@@ -126,7 +126,7 @@ vec4 calculateSpecularColor()
     int size = min(material.numSpecularTextures, 8);
     for (int i = 0; i < size; i++)
     {
-        specular += texture(material.texture_specular[i], texCoords);
+        specular += texture(material.texture_specular[i], TexCoords);
     }
     return specular;
 }
@@ -165,7 +165,7 @@ vec3 lightFromPointLight(PointLight light, FragmentMaterial mat)
     vec3 diffuse = light.diffuse * diff * mat.diffuse;
 
     // specular
-    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 viewDir = normalize(camera.position - FragPos);
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     vec3 specular = light.specular * spec * mat.specular;
@@ -192,7 +192,7 @@ vec3 lightFromDirLight(DirLight light, FragmentMaterial mat)
     vec3 diffuse = light.diffuse * diff * mat.diffuse;
 
     // specular
-    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 viewDir = normalize(camera.position - FragPos);
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     vec3 specular = light.specular * spec * mat.specular;
@@ -216,7 +216,7 @@ vec3 lightFromSpotLight(SpotLight light, FragmentMaterial mat)
     vec3 diffuse = light.diffuse * diff * mat.diffuse;
 
     // specular
-    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 viewDir = normalize(camera.position - FragPos);
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     vec3 specular = light.specular * spec * mat.specular;

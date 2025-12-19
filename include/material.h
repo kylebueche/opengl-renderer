@@ -7,6 +7,7 @@
 
 #include "glad/glad.h"
 #include <vector>
+#include "texture.h"
 
 #include "glm/vec3.hpp"
 
@@ -14,8 +15,8 @@ struct Material
 {
     glm::vec3 baseDiffuseColor;
     glm::vec3 baseSpecularColor;
-    std::vector<GLint> diffuseTextures;
-    std::vector<GLint> specularTextures;
+    std::vector<Texture> diffuseTextures;
+    std::vector<Texture> specularTextures;
     float shininess;
 
     Material();

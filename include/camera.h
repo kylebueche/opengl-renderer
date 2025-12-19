@@ -7,7 +7,7 @@
 
 #include <cmath>
 
-class PlayerCamera
+class Camera
 {
     public:
         float fov;
@@ -25,12 +25,10 @@ class PlayerCamera
 
         glm::mat4 view;
         glm::mat4 projection;
-        glm::mat4 transform;
 
-        PlayerCamera();
+        Camera();
         void updateView();
         void updateProjection();
-        void updateTransform();
         void moveForward(float distance);
         void moveBackward(float distance);
         void moveLeft(float distance);

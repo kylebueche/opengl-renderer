@@ -15,7 +15,7 @@ float lerp(float t, float a, float b)
     return t * (b - a) + a;
 }
 
-Mesh Sphere(float radius, float uSegments, int vSegments)
+Mesh uvSphere(float radius, float uSegments, int vSegments)
 {
     Mesh sphere;
     glm::vec3 point = glm::vec3(radius, 0.0f, 0.0f);
@@ -36,8 +36,10 @@ Mesh Sphere(float radius, float uSegments, int vSegments)
             sphere.texCoords.push_back(glm::vec2(angleU, angleV));
         }
     }
+    return sphere;
 }
 
+/*
 // Efficiently stores heightfield data given
 class HeightField
 {
@@ -89,3 +91,4 @@ public:
         }
     }
 };
+*/

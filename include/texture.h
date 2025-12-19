@@ -6,18 +6,23 @@
 #include <stb_image.h>
 
 #include "glm/vec3.hpp"
+#include <vector>
+#include <string>
 
-struct Texture
+class Texture
 {
+public:
+    int width;
+    int height;
+    int nrChannels;
+
+    Texture();
+    Texture(std::string filename);
+    ~Texture();
+
+    void loadFromFile(std::string filename);
+
     GLuint id;
-    std::string type;
-    std::string path;
-
-    Texture() = default;
-    Texture(glm::vec3 color);
-    Texture(GLuint texture, std::string type, std::string path);
 };
-
-GLint loadTexture(const char* texturePath, std::string directory);
 
 #endif

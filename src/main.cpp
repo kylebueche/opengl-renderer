@@ -18,144 +18,7 @@
 #include "camera.h"
 #include "texture.h"
 #include "mesh.h"
-
-struct PointLight
-{
-    glm::vec3 position;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-    glm::vec3 ambient;
-    float intensity;
-
-    float quadratic;
-    float linear;
-    float constant;
-};
-
-struct PointLightUniform
-{
-    GLint position;
-    GLint diffuse;
-    GLint specular;
-    GLint ambient;
-    GLint intensity;
-
-    GLint quadratic;
-    GLint linear;
-    GLint constant;
-};
-
-void setPointLight(PointLightUniform uniform, PointLight light)
-{
-    setVec3(uniform.position, light.position);
-    setVec3(uniform.diffuse, light.diffuse);
-    setVec3(uniform.specular, light.specular);
-    setVec3(uniform.ambient, light.ambient);
-    setFloat(uniform.intensity, light.intensity);
-
-    setFloat(uniform.quadratic, light.quadratic);
-    setFloat(uniform.linear, light.linear);
-    setFloat(uniform.constant, light.constant);
-}
-
-struct SpotLight
-{
-    glm::vec3 position;
-    glm::vec3 direction;
-    float angle;
-    float fadeAngle;
-
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-    glm::vec3 ambient;
-    float intensity;
-
-    float quadratic;
-    float linear;
-    float constant;
-};
-
-struct SpotLightUniform
-{
-    GLint position;
-    GLint direction;
-    GLint angle;
-    GLint fadeAngle;
-
-    GLint diffuse;
-    GLint specular;
-    GLint ambient;
-    GLint intensity;
-
-    GLint quadratic;
-    GLint linear;
-    GLint constant;
-};
-
-void setSpotLight(SpotLightUniform uniform, SpotLight light)
-{
-    setVec3(uniform.position, light.position);
-    setVec3(uniform.direction, light.direction);
-    setFloat(uniform.angle, light.angle);
-    setFloat(uniform.fadeAngle, light.fadeAngle);
-
-    setVec3(uniform.diffuse, light.diffuse);
-    setVec3(uniform.specular, light.specular);
-    setVec3(uniform.ambient, light.ambient);
-    setFloat(uniform.intensity, light.intensity);
-
-    setFloat(uniform.quadratic, light.quadratic);
-    setFloat(uniform.linear, light.linear);
-    setFloat(uniform.constant, light.constant);
-}
-
-struct DirLight
-{
-    glm::vec3 direction;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-    glm::vec3 ambient;
-    float intensity;
-};
-
-struct DirLightUniform
-{
-    GLint direction;
-    GLint diffuse;
-    GLint specular;
-    GLint ambient;
-    GLint intensity;
-};
-
-void setDirLight(DirLightUniform uniform, DirLight light)
-{
-    setVec3(uniform.direction, light.direction);
-    setVec3(uniform.diffuse, light.diffuse);
-    setVec3(uniform.specular, light.specular);
-    setVec3(uniform.ambient, light.ambient);
-    setFloat(uniform.intensity, light.intensity);
-}
-
-struct Material
-{
-    GLenum diffuse;
-    GLenum specular;
-    float shininess;
-};
-
-struct MaterialUniform
-{
-    GLint diffuse;
-    GLint baseSpecularColor;
-    GLint shininess;
-};
-
-void setMaterial(MaterialUniform uniform, Material mat)
-{
-    setInt(uniform.diffuse, mat.diffuse);
-    setInt(uniform.specular, mat.specular);
-    setFloat(uniform.shininess, mat.shininess);
-}
+#include "proceduralMesh.h"
 
 // OpenGL functions
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
@@ -169,7 +32,7 @@ const char* windowTitle = "OpenGL Renderer";
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-PlayerCamera camera;
+Camera camera;
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -180,7 +43,6 @@ const siv::PerlinNoise perlin{ seed };
 
 int main()
 {
-    int debugBreak = 0;
     // GLFW Setup
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -226,82 +88,35 @@ int main()
     meshShader.compileFragmentShader("shaders/mesh_frag.glsl");
     meshShader.linkShaders();
 
-    Shader lightSourceShader = Shader();
-    lightSourceShader.compileVertexShader("shaders/lightSource_vert.glsl");
-    lightSourceShader.compileFragmentShader("shaders/lightSource_frag.glsl");
-    lightSourceShader.linkShaders();
-
-    unsigned int texture1 = loadTexture("container2.png", "textures");
-    unsigned int texture2 = loadTexture("container2_specular.png", "textures");
-    unsigned int texture3 = loadTexture("awesomeface.png", "textures");
-    unsigned int texture4 = loadTexture("jerma.jpg", "textures");
-
-
-    const int numVerticesX = 1000;
-    const int numVerticesZ = 1000;
-    const int sizeX = 50;
-    const int sizeZ = 50;
-    const int layers = 3;
-    const float frequency[layers] = { 0.07f, 0.2f, 0.5f };
-    const float amplitude[layers] = { 10.0f, 2.5f, 0.5f };
-    std::vector<glm::vec3> terrainVertices = std::vector<glm::vec3>(numVerticesX * numVerticesZ, glm::vec3(0.0f));
-    std::vector<glm::vec3> terrainNormals = std::vector<glm::vec3>(numVerticesX * numVerticesZ, glm::vec3(0.0f));
-    std::vector<glm::vec2> terrainTexCoords = std::vector<glm::vec2>(numVerticesX * numVerticesZ, glm::vec2(0.0f));
-    std::vector<uint32_t> terrainIndices = std::vector<uint32_t>();
-
-
-
-
-
-
-    glm::vec3 blue = glm::vec3(0.0f, 0.1f, 0.9f);
-    glm::vec3 white = glm::vec3(0.95f);
-    glm::vec3 coral = glm::vec3(1.0f, 0.5f, 0.31f);
-    glm::vec3 pos = glm::vec3(0.0f, 5.0f, 0.0f);
-    glm::mat4 lightTrans = glm::mat4(1.0f);
-    lightTrans = glm::translate(lightTrans, pos);
-    lightTrans = glm::scale(lightTrans, glm::vec3(0.5f));
-
-    lightSourceShader.use();
-    int lightTransform = lightSourceShader.getUniform("transform");
-    int lightColor = lightSourceShader.getUniform("lightColor");
-    int lightCamera = lightSourceShader.getUniform("camera");
-    setMat4(lightTransform, lightTrans);
-    setVec3(lightColor, white);
-    setMat4(lightCamera, camera.transform);
-
+    Texture texture("textures/container2.png");
 
     meshShader.use();
-    int meshProjection = meshShader.getUniform("projection");
-    int meshView = meshShader.getUniform("view");
-    int meshModel = meshShader.getUniform("model");
-    PointLightUniform pointLightUniform = {
-        .position = meshShader.getUniform("pointLight.position"),
-        .diffuse = meshShader.getUniform("pointLight.diffuse"),
-        .specular = meshShader.getUniform("pointLight.specular"),
-        .ambient = meshShader.getUniform("pointLight.ambient"),
-        .intensity = meshShader.getUniform("pointLight.intensity"),
-        .quadratic = meshShader.getUniform("pointLight.quadratic"),
-        .linear = meshShader.getUniform("pointLight.linear"),
-        .constant = meshShader.getUniform("pointLight.constant")
-    };
-    DirLightUniform dirLightUniform = {
-        .direction = meshShader.getUniform("dirLight.direction"),
-        .diffuse = meshShader.getUniform("dirLight.diffuse"),
-        .specular = meshShader.getUniform("dirLight.specular"),
-        .ambient = meshShader.getUniform("dirLight.ambient"),
-        .intensity = meshShader.getUniform("dirLight.intensity"),
-    };
-    MaterialUniform materialUniform = {
-        .diffuse = meshShader.getUniform("material.diffuse"),
-        .specular = meshShader.getUniform("material.specular"),
-        .shininess = meshShader.getUniform("material.shininess")
-    };
-    int meshNormalMatrix = meshShader.getUniform("normal");
-    int meshViewPos = meshShader.getUniform("viewPos");
+    MeshUniform meshUniform = meshShader.getMeshUniform("mesh");
+    CameraUniform cameraUniform = meshShader.getCameraUniform("camera");
+    SpotLightUniform spotLightUniform = meshShader.getSpotLightUniform("spotLights[0]");
+    PointLightUniform pointLightUniform = meshShader.getPointLightUniform("pointLight[0]");
+    DirLightUniform dirLightUniform = meshShader.getDirLightUniform("dirLight[0]");
+    GLint numSpotLightsUniform = meshShader.getUniform("numSpotLights");
+    GLint numPointLightsUniform = meshShader.getUniform("numPointLights");
+    GLint numDirLightsUniform = meshShader.getUniform("numDirLights");
+    setInt(numSpotLightsUniform, 1);
+    setInt(numPointLightsUniform, 1);
+    setInt(numDirLightsUniform, 1);
+
+    MaterialUniform materialUniform = meshShader.getMaterialUniform("material");
+
+    // Colors
+    glm::vec3 white = glm::vec3(1, 1, 1);
+    glm::vec3 red = glm::vec3(1, 0, 0);
+    glm::vec3 orange = glm::vec3(1, 1, 0);
+    glm::vec3 yellow = glm::vec3(0, 1, 1);
+    glm::vec3 green = glm::vec3(0, 1, 0);
+    glm::vec3 blue = glm::vec3(0, 0, 1);
+    glm::vec3 purple = glm::vec3(1, 0, 1);
+
 
     PointLight pointLight = {
-        .position = pos,
+        .position = glm::vec3(1.0f, 1.0f, 1.0f),
         .diffuse = blue,
         .specular = blue,
         .ambient = blue * 0.2f,
@@ -311,7 +126,6 @@ int main()
         .constant = 1.0f
     };
 
-    std::cout << debugBreak++ << std::endl;
     DirLight dirLight = {
         .direction = glm::vec3(0.2f, -1.0f, 0.1f),
         .diffuse = white,
@@ -320,51 +134,7 @@ int main()
         .intensity = 0.1f,
     };
 
-    Material material = {
-        .diffuse = 0,
-        .specular = 1,
-        .shininess = 32.0f
-    };
-    setPointLight(pointLightUniform, pointLight);
-    setDirLight(dirLightUniform, dirLight);
-    setMaterial(materialUniform, material);
 
-    setMat4(meshProjection, camera.projection);
-    setMat4(meshView, camera.view);
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, 0.5f, 0.0f));
-    setMat4(meshModel, model);
-    
-    camera.moveUp(20.0f);
-    camera.updateView();
-    camera.updateTransform();
-
-    glm::vec3 cubePositions[] =
-    {
-        glm::vec3( 0.0f,  0.0f,  0.0f), 
-        glm::vec3( 2.0f,  5.0f, -15.0f), 
-        glm::vec3(-1.5f, -2.2f, -2.5f),  
-        glm::vec3(-3.8f, -2.0f, -12.3f),  
-        glm::vec3( 2.4f, -0.4f, -3.5f),  
-        glm::vec3(-1.7f,  3.0f, -7.5f),  
-        glm::vec3( 1.3f, -2.0f, -2.5f),  
-        glm::vec3( 1.5f,  2.0f, -2.5f), 
-        glm::vec3( 1.5f,  0.2f, -1.5f), 
-        glm::vec3(-1.3f,  1.0f, -1.5f)  
-    };
-    SpotLightUniform spotLightUniform = {
-        .position = meshShader.getUniform("spotLight.position"),
-        .direction = meshShader.getUniform("spotLight.direction"),
-        .angle = meshShader.getUniform("spotLight.angle"),
-        .fadeAngle = meshShader.getUniform("spotLight.fadeAngle"),
-        .diffuse = meshShader.getUniform("spotLight.diffuse"),
-        .specular = meshShader.getUniform("spotLight.specular"),
-        .ambient = meshShader.getUniform("spotLight.ambient"),
-        .intensity = meshShader.getUniform("spotLight.intensity"),
-        .quadratic = meshShader.getUniform("spotLight.quadratic"),
-        .linear = meshShader.getUniform("spotLight.linear"),
-        .constant = meshShader.getUniform("spotLight.constant")
-    };
     SpotLight spotLight = {
         .position = camera.position,
         .direction = camera.front,
@@ -380,11 +150,29 @@ int main()
         .constant = 1.0f
     };
 
+    camera.updateProjection();
+    camera.updateView();
+
+    Mesh sphere = uvSphere(1.0f, 10.0f, 10.0f);
+    sphere.position = glm::vec3(0.0f, 0.0f, 10.0f);
+    sphere.bufferToGPU();
+    sphere.calculateModel();
+    sphere.calculateNormal();
+
+    meshShader.use();
+    Material material(red);
+    setSpotLight(spotLightUniform, spotLight);
+    setPointLight(pointLightUniform, pointLight);
+    setDirLight(dirLightUniform, dirLight);
+    setMaterial(materialUniform, material);
+    setMesh(meshUniform, sphere);
+    setCamera(cameraUniform, camera);
 
     lastFrame = glfwGetTime();
     // Render Loop
     while (!glfwWindowShouldClose(window))
     {
+
         // Inputs and updates
         currentFrame = glfwGetTime();
         glm::vec3 lightCol = glm::vec3(1.0f);
@@ -402,28 +190,22 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Send camera data to shaders
-        lightSourceShader.use();
-        setMat4(lightCamera, camera.transform);
-        setVec3(lightColor, lightCol);
-
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        meshShader.use();
         spotLight.position += (camera.position - spotLight.position) * deltaTime * 5.0f;
         spotLight.direction += (camera.front - spotLight.direction) * deltaTime * 5.0f;
+        camera.updateProjection();
+        camera.updateView();
+        sphere.calculateModel();
+        sphere.calculateNormal();
+        meshShader.use();
         setSpotLight(spotLightUniform, spotLight);
-        setVec3(meshViewPos, camera.position);
-        setMat4(meshProjection, camera.projection);
-        setMat4(meshView, camera.view);
         setPointLight(pointLightUniform, pointLight);
         setDirLight(dirLightUniform, dirLight);
         setMaterial(materialUniform, material);
-        setMat4(meshModel, glm::mat4(1.0f));
-        setMat4(meshNormalMatrix, glm::mat3(glm::transpose(glm::inverse(glm::mat4(1.0f)))));
-        glDrawElements(GL_TRIANGLES, terrainIndices.size(), GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-
+        setMesh(meshUniform, sphere);
+        setCamera(cameraUniform, camera);
+        sphere.draw();
 
         // Swap frame buffers and get next events
         glfwSwapBuffers(window);
@@ -470,15 +252,11 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos)
     yOffset *= sensitivity;
 
     camera.rotateBy(xOffset, yOffset);
-    camera.updateView();
-    camera.updateTransform();
 }
 
 void scroll_callback(GLFWwindow* window, double xOffset, double yOffset)
 {
     camera.zoomBy((float) yOffset);
-    camera.updateProjection();
-    camera.updateTransform();
 }
 
 // OpenGL functions
@@ -518,7 +296,5 @@ void processInput(GLFWwindow* window)
     {
         camera.moveDown(distance);
     }
-    camera.updateView();
-    camera.updateTransform();
     
 }

@@ -1,6 +1,7 @@
 #include "mesh.h"
 #include <cmath>
 #include <numbers>
+#include "glm/ext/matrix_transform.hpp"
 
 Mesh::Mesh()
 {
@@ -11,7 +12,6 @@ Mesh::Mesh()
     normals = std::vector<glm::vec3>();
     texCoords = std::vector<glm::vec2>();
     indices = std::vector<unsigned int>();
-    material = Material();
 }
 
 Mesh::Mesh(const Mesh& other)
@@ -63,35 +63,25 @@ void Mesh::bufferToGPU()
     glBindVertexArray(0);
 }
 
-Mesh triangle()
+void Mesh::draw()
 {
-    Mesh mesh;
-    mesh.vertices =
-    {
-        glm::vec3(-0.5f, -0.5f, 0.0f),
-        glm::vec3(0.5f, -0.5f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    };
-    mesh.normals =
-    {
-        glm::vec3(0.0f, 0.0f, 1.0f),
-        glm::vec3(0.0f, 0.0f, 1.0f),
-        glm::vec3(0.0f, 0.0f, 1.0f)
-    };
-    mesh.indices = { 0, 1, 2 };
-    mesh.material = Material();
-    mesh.bufferToGPU();
-    return mesh;
-}
-
-void Mesh::draw(Shader& shader)
-{
-    // Set shader uniform properties
-    MaterialUniform matUniform = shader.getMaterialUniform("material");
-    setMaterial(matUniform, material);
-
     // Bind pre-buffered data on the GPU side
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+}
+
+void Mesh::calculateModel()
+{
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, position);
+    model = glm::rotate(model, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::scale(model, scale);
+}
+
+void Mesh::calculateNormal()
+{
+    normal = glm::mat3(glm::transpose(glm::inverse(model)));
 }

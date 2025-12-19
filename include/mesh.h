@@ -8,14 +8,18 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <string>
-#include "shader.h"
 #include "texture.h"
 #include "material.h"
 
 class Mesh
 {
 public:
-        glm::mat4 transform;
+        glm::vec3 position;
+        glm::vec3 rotation;
+        glm::vec3 scale;
+
+        glm::mat4 model;
+        glm::mat3 normal;
         // VBO Data
         std::vector<glm::vec3> vertices;
         std::vector<glm::vec3> normals;
@@ -23,13 +27,14 @@ public:
         // EBO Data
         std::vector<unsigned int> indices;
 
-        Material material;
-
         Mesh();
         Mesh(const Mesh& other);
         ~Mesh();
+        void calculateModel();
+        void calculateNormal();
+
         void bufferToGPU();
-        void draw(Shader &shader);
+        void draw();
 
 private:
         GLuint VAO;
