@@ -5,11 +5,21 @@
 #ifndef OPENGL_RENDERER_MATERIAL_H
 #define OPENGL_RENDERER_MATERIAL_H
 
+
 #include "glad/glad.h"
 #include <vector>
 #include "texture.h"
 
 #include "glm/vec3.hpp"
+
+struct Material;
+
+struct MaterialManager
+{
+    std::vector<Material> materials;
+    std::unordered_map<std::string, Material> materialsMap;
+};
+
 
 struct Material
 {

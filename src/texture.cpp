@@ -1,13 +1,67 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "texture.h"
 
+void TextureManager::loadTexture(std::string filename)
+{
+    if (!textureMap.contains(filename))
+    {
+        textures.emplace_back(filename);
+        textureMap[filename] = textures.size() - 1;
+    }
+}
+
+TextureID TextureManager::getTextureID(std::string filename)
+{
+    if (textureMap.contains(filename))
+    {
+        return textureMap[filename];
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+float TextureManager::gigabytesLoadedToRAM()
+{
+    float bytes = 0;
+    for (int i = 0; i < textures.size(); i++)
+    {
+        bytes += float(textures[i].width * textures[i].height * 4);
+    }
+    return bytes / (1024.0f * 1024.0f * 1024.0f);
+}
+
+float TextureManager::gigabytesLoadedToVRAM()
+{
+    float bytes = 0;
+    for (int i = 0; i < textures.size(); i++)
+    {
+        if (textures[i].isResident)
+        {
+            bytes += float(textures[i].width * textures[i].height * 4);
+        }
+    }
+    return bytes / (1024.0f * 1024.0f * 1024.0f);
+}
+
 Texture::Texture()
 {
+    width = 0;
+    height = 0;
+    nrChannels = 0;
+    isResident = false;
+    texData = nullptr;
     glGenTextures(1, &id);
 }
 
 Texture::Texture(std::string filename)
 {
+    width = 0;
+    height = 0;
+    nrChannels = 0;
+    isResident = false;
+    texData = nullptr;
     glGenTextures(1, &id);
     loadFromFile(filename);
 }
@@ -15,39 +69,33 @@ Texture::Texture(std::string filename)
 Texture::~Texture()
 {
     glDeleteTextures(1, &id);
+    if (texData)
+    {
+        stbi_image_free(texData);
+    }
 }
 
-void Texture::loadFromFile(std::string filename)
+void Texture::loadToGPU()
 {
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load(filename.c_str(), &width, &height, &nrChannels, 0);
-
-    if (data)
+    if (texData)
     {
         GLenum format;
-        if (nrChannels == 1)
+        switch (nrChannels)
         {
+        case 1:
             format = GL_RED;
-        }
-        else if (nrChannels == 2)
-        {
+            break;
+        case 2:
             format = GL_RG;
-        }
-        else if (nrChannels == 3)
-        {
+            break;
+        case 3:
             format = GL_RGB;
-        }
-        else if (nrChannels == 4)
-        {
+            break;
+        case 4:
             format = GL_RGBA;
-        }
-        else
-        {
+            break;
+        default:
             std::cout << "ERROR: Unsupported number of channels: " << nrChannels << std::endl;
-            stbi_image_free(data);
             return;
         }
         glBindTexture(GL_TEXTURE_2D, id);
@@ -57,8 +105,28 @@ void Texture::loadFromFile(std::string filename)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        isResident = true;
+    }
+    else
+    {
+        std::cout << "ERROR: Texture missing, did loading fail?" << std::endl;
+    }
+}
 
-        stbi_image_free(data);
+void Texture::unloadFromGPU()
+{
+    glDeleteTextures(1, &id);
+    glGenTextures(1, &id);
+    isResident = false;
+}
+
+void Texture::loadFromFile(std::string filename)
+{
+    int width, height, nrChannels;
+    texData = stbi_load(filename.c_str(), &width, &height, &nrChannels, 0);
+
+    if (texData)
+    {
         this->width = width;
         this->height = height;
         this->nrChannels = nrChannels;
