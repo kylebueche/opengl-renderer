@@ -16,6 +16,9 @@ struct DirLight {
     glm::vec3 ambient;
     glm::vec3 diffuse;
     glm::vec3 specular;
+
+    DirLight();
+    DirLight(glm::vec3 color);
 };
 
 struct PointLight {
@@ -31,6 +34,9 @@ struct PointLight {
     float quadratic;
     float linear;
     float constant;
+
+    PointLight();
+    PointLight(glm::vec3 color);
 };
 
 struct SpotLight {
@@ -49,6 +55,9 @@ struct SpotLight {
     float quadratic;
     float linear;
     float constant;
+
+    SpotLight();
+    SpotLight(glm::vec3 color);
 };
 
 
