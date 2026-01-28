@@ -44,7 +44,8 @@ private:
         void deleteBuffersIfAllocated();
 };
 
-Mesh makefibonnacciSphere(int samples);
 Mesh makeTriangle();
 
+
+Mesh makefibonnacciSphere(int samples);
 #endif

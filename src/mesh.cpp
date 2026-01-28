@@ -16,7 +16,7 @@ Mesh::Mesh()
     indices = std::vector<unsigned int>();
     position = glm::vec3(0.0f);
     rotation = glm::vec3(0.0f);
-    scale = glm::vec3(0.0f);
+    scale = glm::vec3(1.0f);
     model = glm::mat4(1.0f);
     normal = glm::mat3(1.0f);
 }

@@ -69,7 +69,7 @@ void Shader::compileShader(const char* shaderPath, GLenum shaderType)
         shaderFile.close();
         code = shaderStream.str();
     }
-    catch(std::ifstream::failure e)
+    catch(std::ifstream::failure& e)
     {
         std::cout << "ERROR::SHADER_FILEREAD_UNSUCCESSFUL\n" << 
             "Trying to access " << shaderPath << std::endl <<
@@ -83,6 +83,7 @@ void Shader::compileShader(const char* shaderPath, GLenum shaderType)
     glShaderSource(shader, 1, &shaderCode, NULL);
     glCompileShader(shader);
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+
     if (!success)
     {
         glGetShaderInfoLog(shader, 512, NULL, infoLog);

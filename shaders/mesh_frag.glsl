@@ -78,8 +78,8 @@ uniform Camera camera;
 
 out vec4 FragColor;
 
-in vec3 Normal;
 in vec3 FragPos;
+in vec3 Normal;
 in vec2 TexCoords;
 
 //uniform vec3 viewPos;
@@ -106,8 +106,7 @@ void main()
     color += lightFromDirLights(mat);
     color += lightFromSpotLights(mat);
 
-    //FragColor = vec4(color, 1.0);
-    FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    FragColor = vec4(color, 1.0);
 }
 
 // Blends the diffuse base color with each diffuse texture

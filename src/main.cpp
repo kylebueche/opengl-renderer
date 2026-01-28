@@ -33,6 +33,236 @@ void GLAPIENTRY debug_message_callback(GLenum source,
     GLenum severity,
     GLsizei length,
     const GLchar *message,
+    const void *userParam);
+
+
+// Global Camera Settings
+const char* windowTitle = "OpenGL Renderer";
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 600;
+
+Camera camera;
+
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+float currentFrame = 0.0f;
+
+int main()
+{
+    // GLFW Setup
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, windowTitle, NULL, NULL);
+    if (window == NULL)
+    {
+        std::cout << "ERROR: Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    // GLAD Setup
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "ERROR: Failed to initialize GLAD" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    glDebugMessageCallback(debug_message_callback, nullptr);
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    // STBI Settings
+    stbi_set_flip_vertically_on_load(true);
+
+    Shader meshShader = Shader();
+    meshShader.compileVertexShader("shaders/mesh_vert.glsl");
+    meshShader.compileFragmentShader("shaders/mesh_frag.glsl");
+    meshShader.linkShaders();
+
+    meshShader.use();
+    MeshUniform meshUniform = meshShader.getMeshUniform("mesh");
+    MaterialUniform materialUniform = meshShader.getMaterialUniform("material");
+    CameraUniform cameraUniform = meshShader.getCameraUniform("camera");
+    SpotLightUniform spotLightUniform = meshShader.getSpotLightUniform("spotLights[0]");
+    PointLightUniform pointLightUniform = meshShader.getPointLightUniform("pointLights[0]");
+    DirLightUniform dirLightUniform = meshShader.getDirLightUniform("dirLights[0]");
+    GLint numSpotLightsUniform = meshShader.getUniform("numSpotLights");
+    GLint numPointLightsUniform = meshShader.getUniform("numPointLights");
+    GLint numDirLightsUniform = meshShader.getUniform("numDirLights");
+    setInt(numSpotLightsUniform, 1);
+    setInt(numPointLightsUniform, 1);
+    setInt(numDirLightsUniform, 1);
+
+    glm::vec3 red = glm::vec3(1, 0, 0);
+    Material material(red);
+
+    PointLight pointLight;
+    pointLight.intensity = 10.0f;
+
+    DirLight dirLight;
+    SpotLight spotLight;
+
+    spotLight.position = camera.position;
+    spotLight.direction = camera.front;
+    spotLight.angle =  17.0f;
+    spotLight.fadeAngle = 20.0f;
+
+    Mesh mesh = triangle();
+    mesh.position = glm::vec3(0.0f, -1.0f, 0.0f);
+    camera.position = glm::vec3(0.0f, 0.0f, 10.0f);
+
+
+    lastFrame = glfwGetTime();
+    meshShader.use();
+    mesh.bufferToGPU();
+    // Render Loop
+    while (!glfwWindowShouldClose(window))
+    {
+        // Inputs and updates
+        currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+        processInput(window);
+
+        // Canvas reset
+        glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        spotLight.position += (camera.position - spotLight.position) * deltaTime * 5.0f;
+        spotLight.direction += (camera.front - spotLight.direction) * deltaTime * 5.0f;
+        camera.updateProjection();
+        camera.updateView();
+        mesh.calculateModel();
+        mesh.calculateNormal();
+        meshShader.use();
+
+        setSpotLight(spotLightUniform, spotLight);
+        setPointLight(pointLightUniform, pointLight);
+        setDirLight(dirLightUniform, dirLight);
+        setMaterial(materialUniform, material);
+        setMesh(meshUniform, mesh);
+        setCamera(cameraUniform, camera);
+        setInt(numSpotLightsUniform, 1);
+        setInt(numPointLightsUniform, 1);
+        setInt(numDirLightsUniform, 1);
+        mesh.draw();
+
+        // Swap frame buffers and get next events
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    glfwTerminate();
+
+    return 0;
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+}
+
+void mouse_callback(GLFWwindow* window, double xPos, double yPos)
+{
+    static bool firstMotion = true;
+    static float lastX, lastY;
+
+    if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL)
+    {
+        firstMotion = true;
+        return;
+    }
+
+    if (firstMotion)
+    {
+        lastX = xPos;
+        lastY = yPos;
+        firstMotion = false;
+    }
+    float xOffset = xPos - lastX;
+    float yOffset = lastY - yPos;
+    lastX = xPos;
+    lastY = yPos;
+
+    const float sensitivity = 0.1f;
+    xOffset *= sensitivity;
+    yOffset *= sensitivity;
+
+    camera.rotateBy(xOffset, yOffset);
+}
+
+void scroll_callback(GLFWwindow* window, double xOffset, double yOffset)
+{
+    camera.zoomBy((float) yOffset);
+}
+
+// OpenGL functions
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
+void processInput(GLFWwindow* window)
+{
+    float distance = 5.0f * deltaTime;
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        camera.moveForward(distance);
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        camera.moveBackward(distance);
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        camera.moveLeft(distance);
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        camera.moveRight(distance);
+    }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+        camera.moveUp(distance);
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    {
+        camera.moveDown(distance);
+    }
+    
+}
+
+
+void GLAPIENTRY debug_message_callback(GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar *message,
     const void *userParam)
 {
     std::string _source;
@@ -127,268 +357,4 @@ void GLAPIENTRY debug_message_callback(GLenum source,
     std::cout << "MESSAGE SEVERITY: " << _severity << std::endl;
     std::cout << "MESSAGE SOURCE: " << _source << std::endl;
     std::cout << "MESSAGE:" << std::endl << message << std::endl << std::endl;
-}
-
-// Camera Settings
-const char* windowTitle = "OpenGL Renderer";
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
-
-Camera camera;
-
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
-float currentFrame = 0.0f;
-
-const siv::PerlinNoise::seed_type seed = 123456u;
-const siv::PerlinNoise perlin{ seed };
-
-int main()
-{
-    // GLFW Setup
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, windowTitle, NULL, NULL);
-    if (window == NULL)
-    {
-        std::cout << "ERROR: Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetScrollCallback(window, scroll_callback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    // GLAD Setup
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cout << "ERROR: Failed to initialize GLAD" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glDebugMessageCallback(debug_message_callback, nullptr);
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-
-    // STBI Settings
-    stbi_set_flip_vertically_on_load(true);
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    //glEnableVertexAttribArray(0);
-    //glEnableVertexAttribArray(1);
-    //glEnableVertexAttribArray(2);
-    Shader meshShader = Shader();
-    meshShader.compileVertexShader("shaders/mesh_vert.glsl");
-    meshShader.compileFragmentShader("shaders/mesh_frag.glsl");
-    meshShader.linkShaders();
-
-    Texture texture("textures/container2.png");
-
-    meshShader.use();
-    MeshUniform meshUniform = meshShader.getMeshUniform("mesh");
-    CameraUniform cameraUniform = meshShader.getCameraUniform("camera");
-    SpotLightUniform spotLightUniform = meshShader.getSpotLightUniform("spotLights[0]");
-    PointLightUniform pointLightUniform = meshShader.getPointLightUniform("pointLights[0]");
-    DirLightUniform dirLightUniform = meshShader.getDirLightUniform("dirLights[0]");
-    GLint numSpotLightsUniform = meshShader.getUniform("numSpotLights");
-    GLint numPointLightsUniform = meshShader.getUniform("numPointLights");
-    GLint numDirLightsUniform = meshShader.getUniform("numDirLights");
-    setInt(numSpotLightsUniform, 1);
-    setInt(numPointLightsUniform, 1);
-    setInt(numDirLightsUniform, 1);
-
-    MaterialUniform materialUniform = meshShader.getMaterialUniform("material");
-
-    // Colors
-    glm::vec3 white = glm::vec3(1, 1, 1);
-    glm::vec3 red = glm::vec3(1, 0, 0);
-    glm::vec3 orange = glm::vec3(1, 1, 0);
-    glm::vec3 yellow = glm::vec3(0, 1, 1);
-    glm::vec3 green = glm::vec3(0, 1, 0);
-    glm::vec3 blue = glm::vec3(0, 0, 1);
-    glm::vec3 purple = glm::vec3(1, 0, 1);
-
-
-
-    PointLight pointLight;
-    pointLight.intensity = 1000.0f;
-
-    DirLight dirLight;
-
-
-    SpotLight spotLight;
-    spotLight.position = camera.position;
-    spotLight.direction = camera.front;
-    spotLight.angle = 17.0f;
-    spotLight.fadeAngle = 20.0f;
-
-    camera.updateProjection();
-    camera.updateView();
-
-    Mesh sphere = triangle();//uvPlane(80.0f, 2, 2);
-    sphere.position = glm::vec3(0.0f, -4.0f, 0.0f);
-    camera.position = glm::vec3(0.0f, 0.0f, 0.0f);
-    sphere.calculateModel();
-    sphere.calculateNormal();
-
-    meshShader.use();
-    Material material(red);
-    setSpotLight(spotLightUniform, spotLight);
-    setPointLight(pointLightUniform, pointLight);
-    setDirLight(dirLightUniform, dirLight);
-    setMaterial(materialUniform, material);
-    setMesh(meshUniform, sphere);
-    setCamera(cameraUniform, camera);
-
-    lastFrame = glfwGetTime();
-    meshShader.use();
-    sphere.bufferToGPU();
-    // Render Loop
-    while (!glfwWindowShouldClose(window))
-    {
-
-        // Inputs and updates
-        currentFrame = glfwGetTime();
-        glm::vec3 lightCol = glm::vec3(1.0f);
-        //lightCol.x = sin(currentFrame * 1.9f + 6.28f / 3.0f);
-        //lightCol.y = sin(currentFrame * 2.3f + 6.28f * 2.0f / 3.0f);
-        //lightCol.z = sin(currentFrame * 1.73f);
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-        processInput(window);
-        static float currentTime = 0.0f;
-        currentTime += deltaTime;
-        if (currentTime > 10.0f) { currentTime = 0.0f; }
-
-        // Canvas reset
-        glViewport(0, 0, 800, 600);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        spotLight.position += (camera.position - spotLight.position) * deltaTime * 5.0f;
-        spotLight.direction += (camera.front - spotLight.direction) * deltaTime * 5.0f;
-        camera.updateProjection();
-        camera.updateView();
-        sphere.calculateModel();
-        sphere.calculateNormal();
-        meshShader.use();
-
-        setSpotLight(spotLightUniform, spotLight);
-        setPointLight(pointLightUniform, pointLight);
-        setDirLight(dirLightUniform, dirLight);
-        setMaterial(materialUniform, material);
-        setMesh(meshUniform, sphere);
-        setCamera(cameraUniform, camera);
-        setInt(numSpotLightsUniform, 1);
-        setInt(numPointLightsUniform, 1);
-        setInt(numDirLightsUniform, 1);
-        sphere.draw();
-        //std::cout << "Plane:  x: " << sphere.position.x << "  y: " << sphere.position.y << "  z: " << sphere.position.z << std::endl;
-        //std::cout << "Camera: x: " << camera.position.x << "  y: " << camera.position.y << "  z: " << camera.position.z << std::endl;
-
-        // Swap frame buffers and get next events
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-
-    glfwTerminate();
-
-    return 0;
-}
-
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-{
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-    {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    }
-}
-
-void mouse_callback(GLFWwindow* window, double xPos, double yPos)
-{
-    static bool firstMotion = true;
-    static float lastX, lastY;
-
-    if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL)
-    {
-        firstMotion = true;
-        return;
-    }
-
-    if (firstMotion)
-    {
-        lastX = xPos;
-        lastY = yPos;
-        firstMotion = false;
-    }
-    float xOffset = xPos - lastX;
-    float yOffset = lastY - yPos;
-    lastX = xPos;
-    lastY = yPos;
-
-    const float sensitivity = 0.1f;
-    xOffset *= sensitivity;
-    yOffset *= sensitivity;
-
-    camera.rotateBy(xOffset, yOffset);
-}
-
-void scroll_callback(GLFWwindow* window, double xOffset, double yOffset)
-{
-    camera.zoomBy((float) yOffset);
-}
-
-// OpenGL functions
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    glViewport(0, 0, width, height);
-}
-
-void processInput(GLFWwindow* window)
-{
-    float distance = 5.0f * deltaTime;
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    {
-        camera.moveForward(distance);
-    }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    {
-        camera.moveBackward(distance);
-    }
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    {
-        camera.moveLeft(distance);
-    }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    {
-        camera.moveRight(distance);
-    }
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-    {
-        camera.moveUp(distance);
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-    {
-        camera.moveDown(distance);
-    }
-    
 }
