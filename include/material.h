@@ -9,8 +9,8 @@
 #include "glad/glad.h"
 #include <vector>
 #include "texture.h"
-
 #include "glm/vec3.hpp"
+#include "color.h"
 
 struct Material;
 
@@ -33,6 +33,8 @@ struct Material
     Material(glm::vec3 diffuse);
     Material(glm::vec3 diffuse, glm::vec3 specular);
     Material(glm::vec3 diffuse, glm::vec3 specular, float shininess);
+    Material(std::string diffuseTex);
+    Material(std::string diffuseTex, std::string specularTex);
 };
 
 #endif //OPENGL_RENDERER_MATERIAL_H

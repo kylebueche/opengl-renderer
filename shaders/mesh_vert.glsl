@@ -12,6 +12,7 @@ out vec2 TexCoords;
 struct Camera {
     mat4 projection; // Camera projection transformation matrix
     mat4 view; // Camera view transformation matrix
+    vec3 position;
 };
 
 struct Mesh {
@@ -41,5 +42,5 @@ void main()
     TexCoords = aTexCoords;
 
     // Converted to screenspace
-    gl_Position = camera.projection * camera.view * mesh.model * vec4(aPos, 1.0);
+    gl_Position = camera.projection * camera.view * vec4(FragPos, 1.0);
 }

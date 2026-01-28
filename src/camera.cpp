@@ -8,7 +8,7 @@ Camera::Camera()
     nearPlane = 0.1f;
     farPlane = 100.0f;
 
-    position = glm::vec3(0.0f, 0.0f, 10.0f);
+    position = glm::vec3(0.0f, 1.0f, 0.0f);
     front = glm::vec3(0.0f, 0.0f, -1.0f);
     up = glm::vec3(0.0f, 1.0f, 0.0f);
     
@@ -26,7 +26,7 @@ void Camera::updateView()
 
 void Camera::updateProjection()
 {
-    projection = glm::perspective(glm::radians(45.0f), (float) width / (float) height, nearPlane, farPlane);
+    projection = glm::perspective(glm::radians(45.0f), float(width) / float(height), nearPlane, farPlane);
 }
 
 void Camera::moveForward(float distance)

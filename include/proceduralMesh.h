@@ -8,6 +8,8 @@
 #include "mesh.h"
 
 float lerp(float t, float a, float b);
-Mesh uvSphere(float radius, float uSegments, int vSegments);
+Mesh triangle();
+Mesh uvSphere(float radius, int uSegments, int vSegments);
+Mesh uvPlane(float side, int uSegments, int vSegments);
 
 #endif //OPENGL_RENDERER_PROCEDURALMESH_H

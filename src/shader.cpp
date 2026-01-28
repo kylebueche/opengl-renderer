@@ -18,7 +18,10 @@ Shader::Shader()
 Shader::~Shader()
 {
     // Silently ignored if ID = 0
-    glDeleteProgram(ID);
+    if (ID != 0)
+    {
+        glDeleteProgram(ID);
+    }
 }
 
 void Shader::compileVertexShader(const char* shaderPath)
@@ -121,7 +124,12 @@ void Shader::use()
 
 GLint Shader::getUniform(const std::string &name) const
 {
-    return glGetUniformLocation(ID, name.c_str());
+    GLint i = glGetUniformLocation(ID, name.c_str());
+    if (i == -1)
+    {
+        std::cout << "ERROR::SHADER_UNIFORM_DOESNT_EXIST: \"" << name.c_str() << "\"" << std::endl;
+    }
+    return i;
 }
 
 void setBool(GLint uniform, bool value)
@@ -226,6 +234,23 @@ MaterialUniform Shader::getMaterialUniform(std::string uniformName)
     return uniform;
 }
 
+CameraUniform Shader::getCameraUniform(std::string uniformName)
+{
+    CameraUniform uniform;
+    uniform.position = getUniform((uniformName + ".position").c_str());
+    uniform.projection = getUniform((uniformName + ".projection").c_str());
+    uniform.view = getUniform((uniformName + ".view").c_str());
+    return uniform;
+}
+
+MeshUniform Shader::getMeshUniform(std::string uniformName)
+{
+    MeshUniform uniform;
+    uniform.model = getUniform((uniformName + ".model").c_str());
+    uniform.normal = getUniform((uniformName + ".normal").c_str());
+    return uniform;
+}
+
 void setDirLight(DirLightUniform uniform, DirLight dirLight)
 {
     setVec3(uniform.direction, dirLight.direction);
@@ -289,7 +314,7 @@ void setMaterial(MaterialUniform uniform, Material material)
     glActiveTexture(GL_TEXTURE0);
     setInt(uniform.numDiffuseTextures, nDiffuse);
     setInt(uniform.numSpecularTextures, nSpecular);
-    setFloat(material.shininess, material.shininess);
+    setFloat(uniform.shininess, material.shininess);
 }
 
 void setCamera(CameraUniform uniform, Camera camera)

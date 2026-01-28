@@ -19,6 +19,7 @@
 #include "texture.h"
 #include "mesh.h"
 #include "proceduralMesh.h"
+#include "lights.h"
 
 // OpenGL functions
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
@@ -26,6 +27,107 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void scroll_callback(GLFWwindow* window, double xOffset, double yOffset);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
+void GLAPIENTRY debug_message_callback(GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar *message,
+    const void *userParam)
+{
+    std::string _source;
+    std::string _type;
+    std::string _severity;
+    switch (source)
+    {
+    case GL_DEBUG_SOURCE_API:
+        _source = "API";
+        break;
+
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        _source = "WINDOW SYSTEM";
+        break;
+
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        _source = "SHADER COMPILER";
+        break;
+
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        _source = "THIRD PARTY";
+        break;
+
+    case GL_DEBUG_SOURCE_APPLICATION:
+        _source = "APPLICATION";
+        break;
+
+    case GL_DEBUG_SOURCE_OTHER:
+    default:
+        _source = "UNKNOWN";
+        break;
+    }
+
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR:
+        _type = "ERROR";
+        break;
+
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        _type = "DEPRECATED BEHAVIOR";
+        break;
+
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        _type = "UNDEFINED BEHAVIOR";
+        break;
+
+    case GL_DEBUG_TYPE_PORTABILITY:
+        _type = "PORTABILITY";
+        break;
+
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        _type = "PERFORMANCE";
+        break;
+
+    case GL_DEBUG_TYPE_MARKER:
+        _type = "MARKER";
+        break;
+
+    case GL_DEBUG_TYPE_OTHER:
+    default:
+        _type = "UNKNOWN";
+        break;
+    }
+
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH:
+        _severity = "HIGH";
+        break;
+
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        _severity = "MEDIUM";
+        break;
+
+    case GL_DEBUG_SEVERITY_LOW:
+        _severity = "LOW";
+        break;
+
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+        _severity = "NOTIFICATION"; //return;
+        break;
+
+    default:
+        _severity = "UNKNOWN";
+        break;
+    }
+
+    std::cout << "OPENGL DEBUG MESSAGE:" << std::endl;
+    std::cout << "MESSAGE ID: " << id << std::endl;
+    std::cout << "MESSAGE TYPE: " << _type << std::endl;
+    std::cout << "MESSAGE SEVERITY: " << _severity << std::endl;
+    std::cout << "MESSAGE SOURCE: " << _source << std::endl;
+    std::cout << "MESSAGE:" << std::endl << message << std::endl << std::endl;
+}
 
 // Camera Settings
 const char* windowTitle = "OpenGL Renderer";
@@ -48,6 +150,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
@@ -73,6 +176,9 @@ int main()
         glfwTerminate();
         return -1;
     }
+    glDebugMessageCallback(debug_message_callback, nullptr);
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 
     // STBI Settings
     stbi_set_flip_vertically_on_load(true);
@@ -83,6 +189,9 @@ int main()
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+    //glEnableVertexAttribArray(0);
+    //glEnableVertexAttribArray(1);
+    //glEnableVertexAttribArray(2);
     Shader meshShader = Shader();
     meshShader.compileVertexShader("shaders/mesh_vert.glsl");
     meshShader.compileFragmentShader("shaders/mesh_frag.glsl");
@@ -94,8 +203,8 @@ int main()
     MeshUniform meshUniform = meshShader.getMeshUniform("mesh");
     CameraUniform cameraUniform = meshShader.getCameraUniform("camera");
     SpotLightUniform spotLightUniform = meshShader.getSpotLightUniform("spotLights[0]");
-    PointLightUniform pointLightUniform = meshShader.getPointLightUniform("pointLight[0]");
-    DirLightUniform dirLightUniform = meshShader.getDirLightUniform("dirLight[0]");
+    PointLightUniform pointLightUniform = meshShader.getPointLightUniform("pointLights[0]");
+    DirLightUniform dirLightUniform = meshShader.getDirLightUniform("dirLights[0]");
     GLint numSpotLightsUniform = meshShader.getUniform("numSpotLights");
     GLint numPointLightsUniform = meshShader.getUniform("numPointLights");
     GLint numDirLightsUniform = meshShader.getUniform("numDirLights");
@@ -115,47 +224,25 @@ int main()
     glm::vec3 purple = glm::vec3(1, 0, 1);
 
 
-    PointLight pointLight = {
-        .position = glm::vec3(1.0f, 1.0f, 1.0f),
-        .diffuse = blue,
-        .specular = blue,
-        .ambient = blue * 0.2f,
-        .intensity = 100.0f,
-        .quadratic = 1.0f,
-        .linear = 1.0f,
-        .constant = 1.0f
-    };
 
-    DirLight dirLight = {
-        .direction = glm::vec3(0.2f, -1.0f, 0.1f),
-        .diffuse = white,
-        .specular = white,
-        .ambient = white * 0.2f,
-        .intensity = 0.1f,
-    };
+    PointLight pointLight;
+    pointLight.intensity = 1000.0f;
+
+    DirLight dirLight;
 
 
-    SpotLight spotLight = {
-        .position = camera.position,
-        .direction = camera.front,
-        .angle = 17.0f,
-        .fadeAngle = 20.0f,
-
-        .diffuse = white,
-        .specular = white,
-        .ambient = 0.1f * white,
-        .intensity = 1.0f,
-        .quadratic = 0.001f,
-        .linear = 0.001f,
-        .constant = 1.0f
-    };
+    SpotLight spotLight;
+    spotLight.position = camera.position;
+    spotLight.direction = camera.front;
+    spotLight.angle = 17.0f;
+    spotLight.fadeAngle = 20.0f;
 
     camera.updateProjection();
     camera.updateView();
 
-    Mesh sphere = uvSphere(1.0f, 10.0f, 10.0f);
-    sphere.position = glm::vec3(0.0f, 0.0f, 10.0f);
-    sphere.bufferToGPU();
+    Mesh sphere = triangle();//uvPlane(80.0f, 2, 2);
+    sphere.position = glm::vec3(0.0f, -4.0f, 0.0f);
+    camera.position = glm::vec3(0.0f, 0.0f, 0.0f);
     sphere.calculateModel();
     sphere.calculateNormal();
 
@@ -169,6 +256,8 @@ int main()
     setCamera(cameraUniform, camera);
 
     lastFrame = glfwGetTime();
+    meshShader.use();
+    sphere.bufferToGPU();
     // Render Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -187,10 +276,9 @@ int main()
         if (currentTime > 10.0f) { currentTime = 0.0f; }
 
         // Canvas reset
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glViewport(0, 0, 800, 600);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         spotLight.position += (camera.position - spotLight.position) * deltaTime * 5.0f;
         spotLight.direction += (camera.front - spotLight.direction) * deltaTime * 5.0f;
@@ -199,13 +287,19 @@ int main()
         sphere.calculateModel();
         sphere.calculateNormal();
         meshShader.use();
+
         setSpotLight(spotLightUniform, spotLight);
         setPointLight(pointLightUniform, pointLight);
         setDirLight(dirLightUniform, dirLight);
         setMaterial(materialUniform, material);
         setMesh(meshUniform, sphere);
         setCamera(cameraUniform, camera);
+        setInt(numSpotLightsUniform, 1);
+        setInt(numPointLightsUniform, 1);
+        setInt(numDirLightsUniform, 1);
         sphere.draw();
+        //std::cout << "Plane:  x: " << sphere.position.x << "  y: " << sphere.position.y << "  z: " << sphere.position.z << std::endl;
+        //std::cout << "Camera: x: " << camera.position.x << "  y: " << camera.position.y << "  z: " << camera.position.z << std::endl;
 
         // Swap frame buffers and get next events
         glfwSwapBuffers(window);

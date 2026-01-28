@@ -4,11 +4,11 @@ struct Material {
     vec3 baseSpecularColor;
 
     // Diffuse Textures
-    sampler2D texture_diffuse[8];
+    sampler2D diffuseTextures[8];
     int numDiffuseTextures;
 
     // Specular Textures
-    sampler2D texture_specular[8];
+    sampler2D specularTextures[8];
     int numSpecularTextures;
 
     float shininess;
@@ -60,6 +60,8 @@ struct FragmentMaterial {
 };
 
 struct Camera {
+    mat4 projection; // Camera projection transformation matrix
+    mat4 view; // Camera view transformation matrix
     vec3 position;
 };
 
@@ -104,7 +106,8 @@ void main()
     color += lightFromDirLights(mat);
     color += lightFromSpotLights(mat);
 
-    FragColor = vec4(color, 1.0);
+    //FragColor = vec4(color, 1.0);
+    FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }
 
 // Blends the diffuse base color with each diffuse texture
@@ -114,7 +117,7 @@ vec4 calculateDiffuseColor()
     int size = min(material.numDiffuseTextures, 8);
     for (int i = 0; i < size; i++)
     {
-        diffuse += texture(material.texture_diffuse[i], TexCoords);
+        diffuse += texture(material.diffuseTextures[i], TexCoords);
     }
     return diffuse;
 }
@@ -126,7 +129,7 @@ vec4 calculateSpecularColor()
     int size = min(material.numSpecularTextures, 8);
     for (int i = 0; i < size; i++)
     {
-        specular += texture(material.texture_specular[i], TexCoords);
+        specular += texture(material.specularTextures[i], TexCoords);
     }
     return specular;
 }
@@ -148,7 +151,18 @@ vec3 lightFromDirLights(FragmentMaterial mat)
     int numLights = min(numDirLights, 8);
     for (int i = 0; i < numLights; i++)
     {
-        result = result + lightFromDirLight(dirLghts[i], mat);
+        result = result + lightFromDirLight(dirLights[i], mat);
+    }
+    return result;
+}
+
+vec3 lightFromSpotLights(FragmentMaterial mat)
+{
+    vec3 result = vec3(0.0);
+    int numLights = min(numSpotLights, 8);
+    for (int i = 0; i < numLights; i++)
+    {
+        result = result + lightFromSpotLight(spotLights[i], mat);
     }
     return result;
 }

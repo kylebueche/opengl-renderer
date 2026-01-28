@@ -40,6 +40,8 @@ private:
         GLuint VAO;
         GLuint VBOs[3];
         GLuint EBO;
+        void allocateBuffers();
+        void deleteBuffersIfAllocated();
 };
 
 Mesh makefibonnacciSphere(int samples);
