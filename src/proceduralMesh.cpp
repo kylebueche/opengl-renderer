@@ -78,12 +78,12 @@ Mesh uvSphere(float radius, int uSegments, int vSegments)
 {
     Mesh sphere;
     glm::vec3 point = glm::vec3(radius, 0.0f, 0.0f);
-    for (int i = 0; i <= uSegments; i++)
+    for (int i = 1; i < vSegments; i++) // vertical
     {
-        for (int j = 1; j < vSegments; j++)
+        for (int j = 0; j < uSegments; j++) // horizontal
         {
-            float angleU = lerp(float(i) / float(uSegments), 0.0f, 2.0f * M_PI);
-            float angleV = lerp(float(j) / float(vSegments), -M_PI / 2.0f, M_PI / 2.0f);
+            float angleU = lerp(float(j) / float(uSegments), 0.0f, 2.0f * M_PI);
+            float angleV = lerp(float(i) / float(vSegments), -M_PI / 2.0f, M_PI / 2.0f);
             glm::mat4 mat(1.0f);
             // Rotate up and down first
             mat = glm::rotate(mat, angleV, glm::vec3(0.0f, 0.0f, 1.0f));
@@ -105,13 +105,13 @@ Mesh uvSphere(float radius, int uSegments, int vSegments)
     sphere.normals.push_back(normalize(bottomPoint));
     sphere.texCoords.push_back(glm::vec2(0.0f, 0.5f));
     sphere.texCoords.push_back(glm::vec2(1.0f, 0.5f));
-    for (int i = 0; i <= uSegments; i++)
+    for (int i = 0; i < uSegments; i++)
     {
         int left = i;
-        int right = (i + 1) % (uSegments + 1);
+        int right = (i + 1) % (uSegments);
         sphere.indices.push_back(topPointIndex);
-        sphere.indices.push_back(right);
         sphere.indices.push_back(left);
+        sphere.indices.push_back(right);
     }
     return sphere;
 }

@@ -110,13 +110,15 @@ int main()
     setInt(numPointLightsUniform, 1);
     setInt(numDirLightsUniform, 1);
 
-    glm::vec3 red = glm::vec3(1, 0, 0);
+    glm::vec3 red = glm::vec3(1, 0, 0.3f);
     Material material(red);
 
     PointLight pointLight;
-    pointLight.intensity = 10.0f;
+    pointLight.intensity = 50.0f;
+    pointLight.diffuse = glm::vec3(0.5, 0.5, 1.0);
 
     DirLight dirLight;
+    dirLight.intensity = 0.3f;
     SpotLight spotLight;
 
     spotLight.position = camera.position;
@@ -124,8 +126,8 @@ int main()
     spotLight.angle =  17.0f;
     spotLight.fadeAngle = 20.0f;
 
-    Mesh mesh = triangle();
-    mesh.position = glm::vec3(0.0f, -1.0f, 0.0f);
+    Mesh mesh = uvSphere(2.0, 10, 10);
+    mesh.position = glm::vec3(0.0f, -1.0f, 10.0f);
     camera.position = glm::vec3(0.0f, 0.0f, 10.0f);
 
 
@@ -147,6 +149,7 @@ int main()
 
         spotLight.position += (camera.position - spotLight.position) * deltaTime * 5.0f;
         spotLight.direction += (camera.front - spotLight.direction) * deltaTime * 5.0f;
+        pointLight.position = glm::vec3(0.0f, 10.0f * sin(currentFrame), 0.0f);
         camera.updateProjection();
         camera.updateView();
         mesh.calculateModel();

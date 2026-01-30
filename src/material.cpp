@@ -10,13 +10,13 @@ Material::Material()
       baseSpecularColor(black),
       diffuseTextures(std::vector<Texture>()),
       specularTextures(std::vector<Texture>()),
-      shininess(0.0f)
+      shininess(1.0f)
 {}
 
 Material::Material(glm::vec3 diffuse)
     : baseDiffuseColor(diffuse),
       baseSpecularColor(black),
-      shininess(0.0f)
+      shininess(1.0f)
 {}
 
 Material::Material(glm::vec3 diffuse, glm::vec3 specular)
@@ -36,7 +36,7 @@ Material::Material(std::string diffuseTex)
     :   baseDiffuseColor(black),
         baseSpecularColor(black),
         diffuseTextures({Texture(diffuseTex)}),
-        shininess(0.5f)
+        shininess(1.0f)
 {}
 
 Material::Material(std::string diffuseTex, std::string specularTex)
@@ -44,5 +44,5 @@ Material::Material(std::string diffuseTex, std::string specularTex)
         baseSpecularColor(black),
         diffuseTextures({Texture(diffuseTex)}),
         specularTextures({Texture(specularTex)}),
-        shininess(0.5f)
+        shininess(1.0f)
 {}

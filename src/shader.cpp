@@ -298,23 +298,23 @@ void setMaterial(MaterialUniform uniform, Material material)
 {
     setVec3(uniform.baseDiffuseColor, material.baseDiffuseColor);
     setVec3(uniform.baseSpecularColor, material.baseSpecularColor);
-    int nDiffuse = std::min(8, int(material.diffuseTextures.size()));
-    int nSpecular = std::min(8, int(material.specularTextures.size()));
-    for (int i = 0; i < nDiffuse; i++)
-    {
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, material.diffuseTextures[i].id);
-        setInt(uniform.diffuseTextures[i], GL_TEXTURE0 + i);
-    }
-    for (int i = 0; i < nSpecular; i++)
-    {
-        glActiveTexture(GL_TEXTURE0 + nDiffuse + i);
-        glBindTexture(GL_TEXTURE_2D, material.specularTextures[i].id);
-        setInt(uniform.specularTextures[i], GL_TEXTURE0 + nDiffuse + i);
-    }
-    glActiveTexture(GL_TEXTURE0);
-    setInt(uniform.numDiffuseTextures, nDiffuse);
-    setInt(uniform.numSpecularTextures, nSpecular);
+    //int nDiffuse = std::min(8, int(material.diffuseTextures.size()));
+    //int nSpecular = std::min(8, int(material.specularTextures.size()));
+    //for (int i = 0; i < nDiffuse; i++)
+    //{
+    //    glActiveTexture(GL_TEXTURE0 + i);
+    //    glBindTexture(GL_TEXTURE_2D, material.diffuseTextures[i].id);
+    //    setInt(uniform.diffuseTextures[i], GL_TEXTURE0 + i);
+    //}
+    //for (int i = 0; i < nSpecular; i++)
+    //{
+    //    glActiveTexture(GL_TEXTURE0 + nDiffuse + i);
+    //    glBindTexture(GL_TEXTURE_2D, material.specularTextures[i].id);
+    //    setInt(uniform.specularTextures[i], GL_TEXTURE0 + nDiffuse + i);
+    //}
+    //glActiveTexture(GL_TEXTURE0);
+    //setInt(uniform.numDiffuseTextures, nDiffuse);
+    //setInt(uniform.numSpecularTextures, nSpecular);
     setFloat(uniform.shininess, material.shininess);
 }
 

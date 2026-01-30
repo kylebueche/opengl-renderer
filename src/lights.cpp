@@ -27,7 +27,7 @@ DirLight::DirLight(glm::vec3 color) :
 
 
 PointLight::PointLight() :
-    position(glm::vec3(0.0f, 1.0f, 0.0f)),
+    position(glm::vec3(0.0f, 10.0f, 0.0f)),
     intensity(1.0f),
     ambient(glm::vec3(0.1f)),
     diffuse(glm::vec3(1.0f)),

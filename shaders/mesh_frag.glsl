@@ -2,15 +2,6 @@
 struct Material {
     vec3 baseDiffuseColor;
     vec3 baseSpecularColor;
-
-    // Diffuse Textures
-    sampler2D diffuseTextures[8];
-    int numDiffuseTextures;
-
-    // Specular Textures
-    sampler2D specularTextures[8];
-    int numSpecularTextures;
-
     float shininess;
 };
 
@@ -97,9 +88,9 @@ void main()
 {
 
     FragmentMaterial mat;
-    mat.diffuse = vec3(calculateDiffuseColor());
-    mat.specular = vec3(calculateSpecularColor());
-    mat.ambient = mat.diffuse;
+    mat.diffuse = material.baseDiffuseColor;
+    mat.specular = material.baseSpecularColor;
+    mat.ambient = material.baseDiffuseColor;
     mat.shininess = material.shininess;
 
     vec3 color = lightFromPointLights(mat);
@@ -107,30 +98,6 @@ void main()
     color += lightFromSpotLights(mat);
 
     FragColor = vec4(color, 1.0);
-}
-
-// Blends the diffuse base color with each diffuse texture
-vec4 calculateDiffuseColor()
-{
-    vec4 diffuse = vec4(material.baseDiffuseColor, 1.0);
-    int size = min(material.numDiffuseTextures, 8);
-    for (int i = 0; i < size; i++)
-    {
-        diffuse += texture(material.diffuseTextures[i], TexCoords);
-    }
-    return diffuse;
-}
-
-// Blends the specular base color with each specular texture
-vec4 calculateSpecularColor()
-{
-    vec4 specular = vec4(material.baseSpecularColor, 1.0);
-    int size = min(material.numSpecularTextures, 8);
-    for (int i = 0; i < size; i++)
-    {
-        specular += texture(material.specularTextures[i], TexCoords);
-    }
-    return specular;
 }
 
 vec3 lightFromPointLights(FragmentMaterial mat)
