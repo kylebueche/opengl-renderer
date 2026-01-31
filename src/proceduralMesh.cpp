@@ -77,41 +77,51 @@ Mesh uvPlane(float side, int uSegments, int vSegments)
 Mesh uvSphere(float radius, int uSegments, int vSegments)
 {
     Mesh sphere;
-    glm::vec3 point = glm::vec3(radius, 0.0f, 0.0f);
-    for (int i = 1; i < vSegments; i++) // vertical
+
+    if (uSegments < 3)
+        uSegments = 3;
+    if (vSegments < 2)
+        vSegments = 2;
+
+    float deltaV = M_PI / vSegments;
+    float deltaU = 2 * M_PI / uSegments;
+    float angleV;
+    float angleU;
+    for (int i = 0; i <= vSegments; i++)
     {
-        for (int j = 0; j < uSegments; j++) // horizontal
+        angleV = M_PI / 2.0 - i * deltaV;
+        float xy = radius * cosf(angleV);
+        float z = radius * sinf(angleV);
+        for (int j = 0; j <= uSegments; j++)
         {
-            float angleU = lerp(float(j) / float(uSegments), 0.0f, 2.0f * M_PI);
-            float angleV = lerp(float(i) / float(vSegments), -M_PI / 2.0f, M_PI / 2.0f);
-            glm::mat4 mat(1.0f);
-            // Rotate up and down first
-            mat = glm::rotate(mat, angleV, glm::vec3(0.0f, 0.0f, 1.0f));
-            // Rotate around vertical axis last
-            mat = glm::rotate(mat, angleU, glm::vec3(0.0f, 1.0f, 0.0f));
-            glm::vec3 newPoint = glm::vec3(mat * glm::vec4(point, 1.0f));
-            sphere.vertices.push_back(newPoint);
-            sphere.normals.push_back(normalize(newPoint));
-            sphere.texCoords.push_back(glm::vec2(float(i) / float(uSegments), float(j) / float(vSegments)));
+            angleU = j * deltaU;
+            glm::vec3 point = glm::vec3(xy * cosf(angleU), xy * sinf(angleU), z);
+            sphere.vertices.push_back(point);
+            sphere.normals.push_back(glm::normalize(point));
+            sphere.texCoords.push_back(glm::vec2(float(j) / uSegments, float(i) / vSegments));
         }
     }
-    glm::vec3 topPoint = glm::vec3(0.0f, radius, 0.0f);
-    glm::vec3 bottomPoint = glm::vec3(0.0f, -radius, 0.0f);
-    size_t topPointIndex = sphere.vertices.size();
-    sphere.vertices.push_back(topPoint);
-    size_t bottomPointIndex = sphere.vertices.size();
-    sphere.vertices.push_back(bottomPoint);
-    sphere.normals.push_back(normalize(topPoint));
-    sphere.normals.push_back(normalize(bottomPoint));
-    sphere.texCoords.push_back(glm::vec2(0.0f, 0.5f));
-    sphere.texCoords.push_back(glm::vec2(1.0f, 0.5f));
-    for (int i = 0; i < uSegments; i++)
+
+    unsigned int k1, k2;
+    for (int i = 0; i < vSegments; i++)
     {
-        int left = i;
-        int right = (i + 1) % (uSegments);
-        sphere.indices.push_back(topPointIndex);
-        sphere.indices.push_back(left);
-        sphere.indices.push_back(right);
+        k1 = i * (uSegments + 1);
+        k2 = k1 + uSegments + 1;
+        for (int j = 0; j < uSegments; j++, k1++, k2++)
+        {
+            if (i != 0)
+            {
+                sphere.indices.push_back(k1);
+                sphere.indices.push_back(k2);
+                sphere.indices.push_back(k1 + 1);
+            }
+            if (i != (uSegments - 1))
+            {
+                sphere.indices.push_back(k1 + 1);
+                sphere.indices.push_back(k2);
+                sphere.indices.push_back(k2 + 1);
+            }
+        }
     }
     return sphere;
 }

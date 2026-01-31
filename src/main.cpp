@@ -47,6 +47,21 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float currentFrame = 0.0f;
 
+#define E_CUOLOMBS 1.6021766343e-19
+#define CUOLOMBS_CONSTANT_NC2_PER_M2 8.987551785972e9
+#define ELECTRON_MASS_KG 9.1093837139e-31
+#define PROTON_MASS_KG 1.67262192595e-27
+#define ELECTRON_RADIUS 1.0e-22 // this is not a true radius, but a functional size indication
+#define PROTON_RADIUS 0.84075e-15
+#define HYDROGEN_ORBIT_RADIUS 5.29e-11
+
+// acceleration per distance squared between the two particles.
+// these are all surprisingly tame values between 0.01 and 300.0
+constexpr float accel_on_e_from_p_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * -E_CUOLOMBS * E_CUOLOMBS / ELECTRON_MASS_KG;
+constexpr float accel_on_p_from_e_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * -E_CUOLOMBS * E_CUOLOMBS / PROTON_MASS_KG;
+constexpr float accel_on_e_from_e_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * E_CUOLOMBS * E_CUOLOMBS / ELECTRON_MASS_KG;
+constexpr float accel_on_p_from_p_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * E_CUOLOMBS * E_CUOLOMBS / PROTON_MASS_KG;
+
 int main()
 {
     // GLFW Setup
@@ -115,10 +130,10 @@ int main()
 
     PointLight pointLight;
     pointLight.intensity = 50.0f;
-    pointLight.diffuse = glm::vec3(0.5, 0.5, 1.0);
 
     DirLight dirLight;
-    dirLight.intensity = 0.3f;
+    dirLight.intensity = 1.0f;
+    dirLight.direction = glm::vec3(-0.5f, -1.0f, -0.5f);
     SpotLight spotLight;
 
     spotLight.position = camera.position;
@@ -130,10 +145,24 @@ int main()
     mesh.position = glm::vec3(0.0f, -1.0f, 10.0f);
     camera.position = glm::vec3(0.0f, 0.0f, 10.0f);
 
+    Mesh proton = uvSphere(0.1f, 10, 10);
+    Mesh electron = uvSphere(0.1f, 10, 10);
+    proton.position = glm::vec3(0.0f, 0.0f, 0.0f);
+    electron.position = glm::vec3(0.0f, 0.0f, 0.3f);
+    glm::vec3 protonVelocity = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 electronVelocity = glm::vec3(0.5f, 0.5f, 0.0f);
+    glm::vec3 protonAcceleration = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 electronAcceleration = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 distanceVec;
+    glm::vec3 dirVec;
+    float distanceSquared;
+    float countDown = 10.0f;
 
     lastFrame = glfwGetTime();
     meshShader.use();
     mesh.bufferToGPU();
+    electron.bufferToGPU();
+    proton.bufferToGPU();
     // Render Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -142,18 +171,39 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         processInput(window);
+        countDown -= deltaTime;
 
         // Canvas reset
         glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        if (countDown <= 0.0f)
+        {
+            for (int i = 0; i < 100; i++)
+            {
+                float dT = deltaTime * float(i) / 100.0f;
+                distanceVec = (electron.position - proton.position);
+                distanceSquared = glm::dot(distanceVec, distanceVec);
+                dirVec = normalize(distanceVec);
+                electronAcceleration = accel_on_e_from_p_per_m2 * distanceSquared * dirVec;
+                protonAcceleration = accel_on_p_from_e_per_m2 * distanceSquared * dirVec;
+                electronVelocity += electronAcceleration * dT;
+                protonVelocity += protonAcceleration * dT;
+                electron.position += electronVelocity * dT;
+                proton.position += protonVelocity * dT;
+            }
+        }
+
         spotLight.position += (camera.position - spotLight.position) * deltaTime * 5.0f;
         spotLight.direction += (camera.front - spotLight.direction) * deltaTime * 5.0f;
-        pointLight.position = glm::vec3(0.0f, 10.0f * sin(currentFrame), 0.0f);
         camera.updateProjection();
         camera.updateView();
-        mesh.calculateModel();
-        mesh.calculateNormal();
+        //mesh.calculateModel();
+        //mesh.calculateNormal();
+        electron.calculateModel();
+        electron.calculateNormal();
+        proton.calculateModel();
+        proton.calculateNormal();
         meshShader.use();
 
         setSpotLight(spotLightUniform, spotLight);
@@ -165,7 +215,11 @@ int main()
         setInt(numSpotLightsUniform, 1);
         setInt(numPointLightsUniform, 1);
         setInt(numDirLightsUniform, 1);
-        mesh.draw();
+        setMesh(meshUniform, electron);
+        electron.draw();
+        setMesh(meshUniform, proton);
+        proton.draw();
+        //mesh.draw();
 
         // Swap frame buffers and get next events
         glfwSwapBuffers(window);
