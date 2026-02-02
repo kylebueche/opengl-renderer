@@ -52,15 +52,15 @@ float currentFrame = 0.0f;
 #define ELECTRON_MASS_KG 9.1093837139e-31
 #define PROTON_MASS_KG 1.67262192595e-27
 #define ELECTRON_RADIUS 1.0e-22 // this is not a true radius, but a functional size indication
-#define PROTON_RADIUS 0.84075e-15
-#define HYDROGEN_ORBIT_RADIUS 5.29e-11
+#define PROTON_RADIUS_mm 0.84075e-15 * 1.0e3
+#define HYDROGEN_ORBIT_RADIUS_mm 5.29e-11 * 1.0e3
 
 // acceleration per distance squared between the two particles.
 // these are all surprisingly tame values between 0.01 and 300.0
-constexpr float accel_on_e_from_p_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * -E_CUOLOMBS * E_CUOLOMBS / ELECTRON_MASS_KG;
-constexpr float accel_on_p_from_e_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * -E_CUOLOMBS * E_CUOLOMBS / PROTON_MASS_KG;
-constexpr float accel_on_e_from_e_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * E_CUOLOMBS * E_CUOLOMBS / ELECTRON_MASS_KG;
-constexpr float accel_on_p_from_p_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * E_CUOLOMBS * E_CUOLOMBS / PROTON_MASS_KG;
+constexpr float accel_on_e_from_p_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * -E_CUOLOMBS * E_CUOLOMBS / (ELECTRON_MASS_KG * 1.0e3);
+constexpr float accel_on_p_from_e_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * -E_CUOLOMBS * E_CUOLOMBS / (PROTON_MASS_KG * 1.0e3);
+constexpr float accel_on_e_from_e_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * E_CUOLOMBS * E_CUOLOMBS / (ELECTRON_MASS_KG * 1.0e3);
+constexpr float accel_on_p_from_p_per_m2 = CUOLOMBS_CONSTANT_NC2_PER_M2 * E_CUOLOMBS * E_CUOLOMBS / (PROTON_MASS_KG * 1.0e3);
 
 int main()
 {
@@ -121,12 +121,12 @@ int main()
     GLint numSpotLightsUniform = meshShader.getUniform("numSpotLights");
     GLint numPointLightsUniform = meshShader.getUniform("numPointLights");
     GLint numDirLightsUniform = meshShader.getUniform("numDirLights");
-    setInt(numSpotLightsUniform, 1);
+    setInt(numSpotLightsUniform, 0);
     setInt(numPointLightsUniform, 1);
     setInt(numDirLightsUniform, 1);
 
-    glm::vec3 red = glm::vec3(1, 0, 0.3f);
-    Material material(red);
+    Material material(glm::vec3(0.8f, 0.1f, 0.1f));
+    Material blueMat(glm::vec3(0.1f, 0.1f, 0.8f));
 
     PointLight pointLight;
     pointLight.intensity = 50.0f;
@@ -141,16 +141,34 @@ int main()
     spotLight.angle =  17.0f;
     spotLight.fadeAngle = 20.0f;
 
-    Mesh mesh = uvSphere(2.0, 10, 10);
-    mesh.position = glm::vec3(0.0f, -1.0f, 10.0f);
     camera.position = glm::vec3(0.0f, 0.0f, 10.0f);
+    struct particle
+    {
+        glm::vec3 position;
+        glm::vec3 velocity;
+        glm::vec3 acceleration;
+        void update(float timeStep)
+        {
+            velocity += acceleration * timeStep;
+            position += velocity * timeStep;
+        }
+    };
+
+    std::vector<particle> electrons(10);
+    std::vector<particle> protons(10);
 
     Mesh proton = uvSphere(0.1f, 10, 10);
-    Mesh electron = uvSphere(0.1f, 10, 10);
+    Mesh electron = uvSphere(0.05f, 10, 10);
+    for (int i = 0; i < 10; i++)
+    {
+        float xVal = float(i) - 5.0f;
+        electrons[i].position = glm::vec3(xVal, 0.0f, 1.0f);
+        protons[i].position = glm::vec3(xVal, 0.0f, -1.0f);
+    }
     proton.position = glm::vec3(0.0f, 0.0f, 0.0f);
     electron.position = glm::vec3(0.0f, 0.0f, 0.3f);
     glm::vec3 protonVelocity = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 electronVelocity = glm::vec3(0.5f, 0.5f, 0.0f);
+    glm::vec3 electronVelocity = glm::vec3(0.01f, 0.01f, 0.0f);
     glm::vec3 protonAcceleration = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 electronAcceleration = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 distanceVec;
@@ -159,8 +177,6 @@ int main()
     float countDown = 10.0f;
 
     lastFrame = glfwGetTime();
-    meshShader.use();
-    mesh.bufferToGPU();
     electron.bufferToGPU();
     proton.bufferToGPU();
     // Render Loop
@@ -174,52 +190,102 @@ int main()
         countDown -= deltaTime;
 
         // Canvas reset
-        glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+        glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         if (countDown <= 0.0f)
         {
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 1; i++)
             {
                 float dT = deltaTime * float(i) / 100.0f;
-                distanceVec = (electron.position - proton.position);
-                distanceSquared = glm::dot(distanceVec, distanceVec);
-                dirVec = normalize(distanceVec);
-                electronAcceleration = accel_on_e_from_p_per_m2 * distanceSquared * dirVec;
-                protonAcceleration = accel_on_p_from_e_per_m2 * distanceSquared * dirVec;
-                electronVelocity += electronAcceleration * dT;
-                protonVelocity += protonAcceleration * dT;
-                electron.position += electronVelocity * dT;
-                proton.position += protonVelocity * dT;
+                for (int a = 0; a < electrons.size(); a++)
+                {
+                    electrons[a].acceleration = glm::vec3(0.0f);
+                }
+                for (int a = 0; a < protons.size(); a++)
+                {
+                    protons[a].acceleration = glm::vec3(0.0f);
+                }
+                for (int a = 0; a < electrons.size(); a++)
+                {
+                    for (int b = 0; b < electrons.size(); b++)
+                    {
+                        if (a != b)
+                        {
+                            distanceVec = electrons[a].position - electrons[b].position;
+                            distanceSquared = glm::dot(distanceVec, distanceVec);
+                            dirVec = normalize(distanceVec);
+                            electrons[a].acceleration += accel_on_e_from_e_per_m2 * distanceSquared * dirVec;
+                            electrons[b].acceleration += accel_on_e_from_e_per_m2 * distanceSquared * -dirVec;
+                        }
+                    }
+                }
+                for (int a = 0; a < protons.size(); a++)
+                {
+                    for (int b = 0; b < protons.size(); b++)
+                    {
+                        if (a != b)
+                        {
+                            distanceVec = protons[a].position - protons[b].position;
+                            distanceSquared = glm::dot(distanceVec, distanceVec);
+                            dirVec = normalize(distanceVec);
+                            electrons[a].acceleration += accel_on_e_from_e_per_m2 * distanceSquared * -dirVec;
+                            electrons[b].acceleration += accel_on_e_from_e_per_m2 * distanceSquared * dirVec;
+                        }
+                    }
+                }
+                for (int a = 0; a < electrons.size(); a++)
+                {
+                    for (int b = 0; b < protons.size(); b++)
+                    {
+                        distanceVec = electrons[a].position - protons[b].position;
+                        distanceSquared = glm::dot(distanceVec, distanceVec);
+                        dirVec = normalize(distanceVec);
+                        electrons[a].acceleration += accel_on_e_from_e_per_m2 * distanceSquared * dirVec;
+                        protons[b].acceleration += accel_on_e_from_e_per_m2 * distanceSquared * dirVec;
+                    }
+                }
+
+
+                for (int a = 0; a < electrons.size(); a++)
+                {
+                    electrons[a].update(deltaTime);
+                }
+                for (int a = 0; a < protons.size(); a++)
+                {
+                    protons[a].update(deltaTime);
+                }
             }
         }
-
-        spotLight.position += (camera.position - spotLight.position) * deltaTime * 5.0f;
-        spotLight.direction += (camera.front - spotLight.direction) * deltaTime * 5.0f;
         camera.updateProjection();
         camera.updateView();
-        //mesh.calculateModel();
-        //mesh.calculateNormal();
-        electron.calculateModel();
-        electron.calculateNormal();
-        proton.calculateModel();
-        proton.calculateNormal();
         meshShader.use();
-
         setSpotLight(spotLightUniform, spotLight);
         setPointLight(pointLightUniform, pointLight);
         setDirLight(dirLightUniform, dirLight);
         setMaterial(materialUniform, material);
-        setMesh(meshUniform, mesh);
         setCamera(cameraUniform, camera);
         setInt(numSpotLightsUniform, 1);
         setInt(numPointLightsUniform, 1);
         setInt(numDirLightsUniform, 1);
         setMesh(meshUniform, electron);
-        electron.draw();
+        setMaterial(materialUniform, blueMat);
+        for (int a = 0; a < electrons.size(); a++)
+        {
+            electron.position = electrons[a].position;
+            electron.calculateModel();
+            electron.calculateNormal();
+            electron.draw();
+        }
         setMesh(meshUniform, proton);
-        proton.draw();
-        //mesh.draw();
+        setMaterial(materialUniform, material);
+        for (int a = 0; a < protons.size(); a++)
+        {
+            proton.position = protons[a].position;
+            proton.calculateModel();
+            proton.calculateNormal();
+            proton.draw();
+        }
 
         // Swap frame buffers and get next events
         glfwSwapBuffers(window);
