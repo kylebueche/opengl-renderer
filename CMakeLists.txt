@@ -17,7 +17,9 @@ file(GLOB_RECURSE SRC_FILES
         "${THIRDPARTY_SRC_DIR}/*.cpp"
         "${THIRDPARTY_SRC_DIR}/*.c")
 
-add_executable(main ${SRC_FILES})
+add_executable(main ${SRC_FILES}
+        include/electrons.h
+        include/scene.h)
 
 target_include_directories(main PRIVATE ${INCLUDE_DIR} ${THIRDPARTY_INCLUDE_DIR})
 target_link_directories(main PRIVATE ${LIB_DIR})
