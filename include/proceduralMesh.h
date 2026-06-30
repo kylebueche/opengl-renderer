@@ -1,6 +1,6 @@
-//
-// Created by kyleb on 12/18/2025.
-//
+// Copyright (c) 2025 Kyle Bueche
+// SPDX-License-Identifier: MIT
+// Author: Kyle Bueche
 
 #ifndef OPENGL_RENDERER_PROCEDURALMESH_H
 #define OPENGL_RENDERER_PROCEDURALMESH_H

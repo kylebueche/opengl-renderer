@@ -1,6 +1,6 @@
-//
-// Created by kyleb on 12/13/2025.
-//
+// Copyright (c) 2025 Kyle Bueche
+// SPDX-License-Identifier: MIT
+// Author: Kyle Bueche
 
 #include "material.h"
 

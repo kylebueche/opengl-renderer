@@ -1,6 +1,6 @@
-//
-// Created by kyleb on 12/12/2025.
-//
+// Copyright (c) 2025 Kyle Bueche
+// SPDX-License-Identifier: MIT
+// Author: Kyle Bueche
 
 #ifndef OPENGL_RENDERER_LIGHTS_H
 #define OPENGL_RENDERER_LIGHTS_H

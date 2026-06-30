@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Kyle Bueche
+// SPDX-License-Identifier: MIT
+// Author: Kyle Bueche
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 

@@ -1,6 +1,6 @@
-//
-// Created by Kyle Bueche on 11/10/2025.
-//
+// Copyright (c) 2025 Kyle Bueche
+// SPDX-License-Identifier: MIT
+// Author: Kyle Bueche
 
 #ifndef MODEL_H
 #define MODEL_H

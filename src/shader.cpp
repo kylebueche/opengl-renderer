@@ -1,3 +1,7 @@
+// Copyright (c) 2025 Kyle Bueche
+// SPDX-License-Identifier: MIT
+// Author: Kyle Bueche
+
 #include "../include/shader.h"
 
 #include <glad/glad.h>

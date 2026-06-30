@@ -1,6 +1,6 @@
-//
-// Created by Kyle on 2/16/2026.
-//
+// Copyright (c) 2025 Kyle Bueche
+// SPDX-License-Identifier: MIT
+// Author: Kyle Bueche
 
 #ifndef OPENGL_RENDERER_SCENE_H
 #define OPENGL_RENDERER_SCENE_H

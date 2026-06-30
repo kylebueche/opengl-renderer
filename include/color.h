@@ -1,6 +1,6 @@
-//
-// Created by kyleb on 1/12/2026.
-//
+// Copyright (c) 2025 Kyle Bueche
+// SPDX-License-Identifier: MIT
+// Author: Kyle Bueche
 
 #ifndef OPENGL_RENDERER_COLOR_H
 #define OPENGL_RENDERER_COLOR_H
